@@ -1,0 +1,124 @@
+import { requirePermission } from "@/lib/admin/auth";
+import { prisma } from "@/lib/db";
+import { hasPermission } from "@/lib/permissions";
+import { updateStoreSettings } from "@/server/actions/settings";
+import {
+  AdminCard,
+  AdminCardBody,
+  AdminCardHeader,
+  Button,
+  Field,
+  Input,
+  PageHeader,
+  Textarea,
+} from "@/components/admin/ui";
+
+export default async function AdminSettingsPage() {
+  const user = await requirePermission("settings:read");
+  const canWrite = hasPermission(user.role, "settings:write");
+
+  const settings = await prisma.storeSettings.upsert({
+    where: { id: "default" },
+    create: {},
+    update: {},
+  });
+
+  return (
+    <>
+      <PageHeader title="Store settings" description="Branding, policies, and operational defaults." />
+
+      <AdminCard>
+        <AdminCardHeader title="General" />
+        <AdminCardBody>
+          <form
+            action={async (formData) => {
+              "use server";
+              await updateStoreSettings(formData);
+            }}
+            className="max-w-2xl space-y-4"
+          >
+            <Field label="Store name">
+              <Input name="storeName" defaultValue={settings.storeName} required disabled={!canWrite} />
+            </Field>
+            <Field label="Tagline">
+              <Input name="tagline" defaultValue={settings.tagline} disabled={!canWrite} />
+            </Field>
+            <Field label="Contact email">
+              <Input
+                name="contactEmail"
+                type="email"
+                defaultValue={settings.contactEmail}
+                required
+                disabled={!canWrite}
+              />
+            </Field>
+            <Field label="WhatsApp number">
+              <Input name="whatsappNumber" defaultValue={settings.whatsappNumber ?? ""} disabled={!canWrite} />
+            </Field>
+            <Field label="Announcement bar">
+              <Input name="announcementBar" defaultValue={settings.announcementBar ?? ""} disabled={!canWrite} />
+            </Field>
+            <label className="flex items-center gap-2 text-sm">
+              <input
+                type="checkbox"
+                name="announcementActive"
+                defaultChecked={settings.announcementActive}
+                disabled={!canWrite}
+              />
+              Show announcement bar
+            </label>
+
+            <div className="grid gap-4 sm:grid-cols-3">
+              <Field label="Default weight (g)">
+                <Input
+                  name="defaultWeightGrams"
+                  type="number"
+                  defaultValue={settings.defaultWeightGrams}
+                  disabled={!canWrite}
+                />
+              </Field>
+              <Field label="Global low stock threshold">
+                <Input
+                  name="lowStockThreshold"
+                  type="number"
+                  defaultValue={settings.lowStockThreshold}
+                  disabled={!canWrite}
+                />
+              </Field>
+              <Field label="Reservation (minutes)">
+                <Input
+                  name="reservationMinutes"
+                  type="number"
+                  defaultValue={settings.reservationMinutes}
+                  disabled={!canWrite}
+                />
+              </Field>
+            </div>
+
+            <Field label="Homepage hero title">
+              <Input name="homepageHeroTitle" defaultValue={settings.homepageHeroTitle} disabled={!canWrite} />
+            </Field>
+            <Field label="Homepage hero subtitle">
+              <Textarea name="homepageHeroSubtitle" defaultValue={settings.homepageHeroSubtitle} disabled={!canWrite} />
+            </Field>
+            <Field label="About copy">
+              <Textarea name="aboutCopy" defaultValue={settings.aboutCopy ?? ""} disabled={!canWrite} />
+            </Field>
+            <Field label="Shipping policy">
+              <Textarea name="shippingPolicy" defaultValue={settings.shippingPolicy ?? ""} disabled={!canWrite} />
+            </Field>
+            <Field label="Returns policy">
+              <Textarea name="returnsPolicy" defaultValue={settings.returnsPolicy ?? ""} disabled={!canWrite} />
+            </Field>
+
+            {canWrite ? (
+              <Button type="submit">Save settings</Button>
+            ) : (
+              <p className="text-sm text-[#5c5a54]">Read-only for your role.</p>
+            )}
+          </form>
+        </AdminCardBody>
+      </AdminCard>
+    </>
+  );
+}
