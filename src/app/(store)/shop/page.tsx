@@ -6,7 +6,7 @@ import { FashionRackIllustration } from "@/components/storefront/illustrations";
 import { getActiveCategories, getShopProducts } from "@/lib/store/products";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Filter, Search } from "lucide-react";
+import { Filter } from "lucide-react";
 
 export const metadata = { title: "Shop" };
 
@@ -64,9 +64,8 @@ export default async function ShopPage({ searchParams }: PageProps<"/shop">) {
       />
 
       <form className="mb-8 grid gap-3 rounded-lg border border-border bg-secondary/30 p-4 md:grid-cols-6" method="get">
-        <div className="relative md:col-span-2">
-          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input name="q" defaultValue={q} placeholder="Search" aria-label="Search products" className="pl-9" />
+        <div className="md:col-span-2">
+          <Input name="q" defaultValue={q} placeholder="Search" aria-label="Search products" />
         </div>
         <select
           name="category"

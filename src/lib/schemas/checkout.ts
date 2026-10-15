@@ -13,7 +13,7 @@ export const checkoutAddressSchema = z.object({
   landmark: z.string().trim().max(200).optional().or(z.literal("")),
   city: z.string().trim().min(2).max(100),
   state: z.string().trim().min(2).max(100),
-  deliveryZoneId: z.string().cuid(),
+  deliveryZoneId: z.string().trim().min(1, "Select a delivery zone"),
   deliveryNotes: z.string().trim().max(500).optional().or(z.literal("")),
 });
 
@@ -29,18 +29,13 @@ export const checkoutSchema = z.object({
   couponCode: z.string().trim().max(40).optional().nullable(),
 });
 
-export const registerSchema = z.object({
-  name: z.string().trim().min(2).max(120),
-  email: z.string().trim().email().max(200),
-  phone: z.string().trim().min(10).max(20).optional(),
-  password: z.string().min(10).max(128),
-});
-
-export const loginSchema = z.object({
-  email: z.string().trim().email(),
-  password: z.string().min(1),
-});
+export { registerFormSchema as registerSchema, loginFormSchema as loginSchema } from "@/lib/schemas/auth";
 
 export const trackOrderSchema = z.object({
-  token: z.string().min(20).max(200),
+  orderNumber: z.string().trim().min(3, "Enter your order number").max(40),
+  token: z.string().trim().min(20, "Tracking token looks too short").max(200),
+});
+
+export const checkoutFormSchema = checkoutAddressSchema.extend({
+  couponCode: z.string().trim().max(40).optional().or(z.literal("")),
 });

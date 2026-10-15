@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { getSessionUser } from "@/lib/auth/session";
 import { getCartLines } from "@/lib/cart";
 import { createPendingOrderAndInitializePayment } from "@/lib/orders/checkout";
+import { checkoutFormSchema } from "@/lib/schemas/checkout";
 
 export type CheckoutState = { ok: boolean; message: string };
 
@@ -16,30 +17,27 @@ export async function submitCheckout(
     return { ok: false, message: "Your cart is empty." };
   }
 
-  const address = {
-    fullName: String(formData.get("fullName") ?? "").trim(),
-    email: String(formData.get("email") ?? "").trim(),
-    phone: String(formData.get("phone") ?? "").trim(),
-    street: String(formData.get("street") ?? "").trim(),
-    landmark: String(formData.get("landmark") ?? "").trim() || undefined,
-    city: String(formData.get("city") ?? "").trim(),
-    state: String(formData.get("state") ?? "").trim(),
-    deliveryZoneId: String(formData.get("deliveryZoneId") ?? ""),
-    deliveryNotes: String(formData.get("deliveryNotes") ?? "").trim() || undefined,
-  };
+  const parsed = checkoutFormSchema.safeParse({
+    fullName: formData.get("fullName"),
+    email: formData.get("email"),
+    phone: formData.get("phone"),
+    street: formData.get("street"),
+    landmark: formData.get("landmark") || "",
+    city: formData.get("city"),
+    state: formData.get("state"),
+    deliveryZoneId: formData.get("deliveryZoneId"),
+    deliveryNotes: formData.get("deliveryNotes") || "",
+    couponCode: formData.get("couponCode") || "",
+  });
 
-  if (
-    !address.fullName ||
-    !address.email ||
-    !address.phone ||
-    !address.street ||
-    !address.city ||
-    !address.state ||
-    !address.deliveryZoneId
-  ) {
-    return { ok: false, message: "Please complete all required fields." };
+  if (!parsed.success) {
+    return {
+      ok: false,
+      message: parsed.error.issues[0]?.message ?? "Please complete all required fields.",
+    };
   }
 
+  const { couponCode, ...address } = parsed.data;
   const user = await getSessionUser();
 
   try {
@@ -49,9 +47,13 @@ export async function submitCheckout(
         variantId: l.variantId,
         quantity: l.quantity,
       })),
-      address,
+      address: {
+        ...address,
+        landmark: address.landmark || undefined,
+        deliveryNotes: address.deliveryNotes || undefined,
+      },
       userId: user?.id ?? null,
-      couponCode: String(formData.get("couponCode") ?? "").trim() || null,
+      couponCode: couponCode?.trim() || null,
     });
 
     if (result.authorizationUrl) {

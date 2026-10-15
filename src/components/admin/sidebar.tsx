@@ -22,7 +22,11 @@ export function AdminSidebar({
     <aside className="flex w-56 shrink-0 flex-col border-r border-[#e8e4dc] bg-[#f5f2ec]">
       <div className="border-b border-[#e8e4dc] px-4 py-4">
         <p className="text-xs font-semibold uppercase tracking-widest text-[#7a776f]">
-          Wunmzy Co
+          <span className="inline-flex items-center gap-2">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/brand/wunmzy-logo.png" alt="" className="h-7 w-auto object-contain" />
+            Wunmzy Co
+          </span>
         </p>
         <p className="text-sm font-semibold text-[#1a1a18]">Admin</p>
       </div>

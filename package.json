@@ -17,6 +17,8 @@
     "db:seed": "tsx prisma/seed.ts",
     "db:embedded": "tsx scripts/start-embedded-pg.ts",
     "admin:bootstrap": "tsx scripts/admin-bootstrap.ts",
+    "admin:upsert": "tsx scripts/upsert-admin.ts",
+    "brand:apply": "tsx scripts/apply-brand.ts",
     "postinstall": "prisma generate"
   },
   "prisma": {
@@ -70,6 +72,7 @@
     "eslint": "^9",
     "eslint-config-next": "16.4.0",
     "prisma": "^6.19.3",
+    "sharp": "^0.35.5",
     "tailwindcss": "^4",
     "tsx": "^4.23.15",
     "typescript": "^5",

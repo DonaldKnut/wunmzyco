@@ -115,29 +115,43 @@ async function clearLegacyDemoCatalog() {
 }
 
 async function seedStoreSettings() {
+  const { BRAND } = await import("../src/lib/brand");
   await prisma.storeSettings.upsert({
     where: { id: "default" },
     create: {
       id: "default",
-      storeName: "Wunmzy Co",
-      tagline: "Curated women's thrift & fashion",
-      contactEmail: "hello@wunmzyco.com",
-      homepageHeroTitle: "Style that feels like you",
-      homepageHeroSubtitle:
-        "Thoughtfully curated thrift and women's fashion for everyday confidence.",
-      announcementBar: null,
-      announcementActive: false,
+      storeName: BRAND.storeName,
+      tagline: BRAND.tagline,
+      contactEmail: BRAND.contactEmail,
+      whatsappNumber: BRAND.whatsappNumber,
+      logoUrl: BRAND.logoUrl,
+      faviconUrl: BRAND.logoUrl,
+      homepageHeroTitle: BRAND.homepageHeroTitle,
+      homepageHeroSubtitle: BRAND.homepageHeroSubtitle,
+      announcementBar: BRAND.announcementBar,
+      announcementActive: true,
+      instagramUrl: BRAND.instagramUrl,
+      facebookUrl: BRAND.facebookUrl,
+      tiktokUrl: BRAND.tiktokUrl,
+      aboutCopy: BRAND.aboutCopy,
       defaultWeightGrams: 400,
       reservationMinutes: 30,
     },
     update: {
-      storeName: "Wunmzy Co",
-      tagline: "Curated women's thrift & fashion",
-      announcementBar: null,
-      announcementActive: false,
-      homepageHeroTitle: "Style that feels like you",
-      homepageHeroSubtitle:
-        "Thoughtfully curated thrift and women's fashion for everyday confidence.",
+      storeName: BRAND.storeName,
+      tagline: BRAND.tagline,
+      contactEmail: BRAND.contactEmail,
+      whatsappNumber: BRAND.whatsappNumber,
+      logoUrl: BRAND.logoUrl,
+      faviconUrl: BRAND.logoUrl,
+      announcementBar: BRAND.announcementBar,
+      announcementActive: true,
+      homepageHeroTitle: BRAND.homepageHeroTitle,
+      homepageHeroSubtitle: BRAND.homepageHeroSubtitle,
+      instagramUrl: BRAND.instagramUrl,
+      facebookUrl: BRAND.facebookUrl,
+      tiktokUrl: BRAND.tiktokUrl,
+      aboutCopy: BRAND.aboutCopy,
     },
   });
 }

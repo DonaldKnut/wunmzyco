@@ -23,14 +23,10 @@ export const cartRemoveSchema = z.object({
   itemId: z.string().cuid(),
 });
 
-export const forgotPasswordSchema = z.object({
-  email: z.string().trim().email(),
-});
-
-export const resetPasswordSchema = z.object({
-  token: z.string().min(20).max(200),
-  password: z.string().min(10).max(128),
-});
+export {
+  forgotPasswordFormSchema as forgotPasswordSchema,
+  resetPasswordFormSchema as resetPasswordSchema,
+} from "@/lib/schemas/auth";
 
 export const deliveryQuoteQuerySchema = z.object({
   deliveryZoneId: z.string().cuid(),

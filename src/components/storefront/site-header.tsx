@@ -8,6 +8,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { HeaderClientActions } from "@/components/storefront/header-client-actions";
 import { SearchDropdown } from "@/components/storefront/search-dropdown";
 import { CartDrawer } from "@/components/storefront/cart-drawer";
+import { BrandLogo } from "@/components/storefront/brand-logo";
 import { cn } from "@/lib/utils";
 
 const nav = [
@@ -35,9 +36,7 @@ export async function SiteHeader() {
     <header className="sticky top-0 z-40 border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80">
       <div className="relative">
         <div className="mx-auto flex h-16 max-w-6xl items-center justify-between gap-4 px-4 sm:px-6">
-          <Link href="/" className="font-display text-xl tracking-tight transition-opacity hover:opacity-80 sm:text-2xl">
-            {settings.storeName}
-          </Link>
+          <BrandLogo src={settings.logoUrl} name={settings.storeName} priority />
           <nav className="hidden items-center gap-8 md:flex" aria-label="Primary">
             {nav.map((item) => (
               <Link

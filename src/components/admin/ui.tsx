@@ -1,5 +1,11 @@
+"use client";
+
+import * as React from "react";
 import Link from "next/link";
+import type { LucideIcon } from "lucide-react";
+import { Eye, EyeOff } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { resolveInputIcon } from "@/lib/ui/resolve-input-icon";
 
 export function AdminCard({
   className,
@@ -152,27 +158,86 @@ export function ButtonLink({
   );
 }
 
-export function Input(props: React.InputHTMLAttributes<HTMLInputElement>) {
+export function Input({
+  icon,
+  className,
+  type,
+  name,
+  autoComplete,
+  togglePassword,
+  ...props
+}: React.InputHTMLAttributes<HTMLInputElement> & {
+  icon?: LucideIcon | false | null;
+  togglePassword?: boolean;
+}) {
+  const isPassword = type === "password";
+  const showToggle = isPassword && togglePassword !== false;
+  const [visible, setVisible] = React.useState(false);
+  const Icon = resolveInputIcon({ icon, type, name, autoComplete });
+  const inputType = showToggle ? (visible ? "text" : "password") : type;
   return (
-    <input
-      className={cn(
-        "h-9 w-full rounded-md border border-[#d8d3c8] bg-white px-3 text-sm text-[#1a1a18] placeholder:text-[#9a968d] focus:border-[#1a1a18] focus:outline-none focus:ring-1 focus:ring-[#1a1a18]",
-        props.className,
-      )}
-      {...props}
-    />
+    <div className="relative w-full">
+      {Icon ? (
+        <Icon
+          className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[#9a968d]"
+          aria-hidden
+        />
+      ) : null}
+      <input
+        type={inputType}
+        name={name}
+        autoComplete={autoComplete}
+        className={cn(
+          "h-9 w-full rounded-md border border-[#d8d3c8] bg-white text-sm text-[#1a1a18] placeholder:text-[#9a968d] focus:border-[#1a1a18] focus:outline-none focus:ring-1 focus:ring-[#1a1a18]",
+          Icon ? "pl-8" : "pl-3",
+          showToggle ? "pr-9" : "pr-3",
+          className,
+        )}
+        {...props}
+      />
+      {showToggle ? (
+        <button
+          type="button"
+          tabIndex={-1}
+          onClick={() => setVisible((v) => !v)}
+          className="absolute right-1.5 top-1/2 inline-flex h-6 w-6 -translate-y-1/2 items-center justify-center rounded text-[#9a968d] hover:bg-[#f0ebe3] hover:text-[#1a1a18]"
+          aria-label={visible ? "Hide password" : "Show password"}
+          aria-pressed={visible}
+        >
+          {visible ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+        </button>
+      ) : null}
+    </div>
   );
 }
 
-export function Textarea(props: React.TextareaHTMLAttributes<HTMLTextAreaElement>) {
+export function Textarea({
+  icon,
+  className,
+  name,
+  ...props
+}: React.TextareaHTMLAttributes<HTMLTextAreaElement> & {
+  icon?: LucideIcon | false | null;
+}) {
+  const Icon = resolveInputIcon({ icon, name, type: "text" });
   return (
-    <textarea
-      className={cn(
-        "min-h-[88px] w-full rounded-md border border-[#d8d3c8] bg-white px-3 py-2 text-sm text-[#1a1a18] placeholder:text-[#9a968d] focus:border-[#1a1a18] focus:outline-none focus:ring-1 focus:ring-[#1a1a18]",
-        props.className,
-      )}
-      {...props}
-    />
+    <div className="relative w-full">
+      {Icon ? (
+        <Icon
+          className="pointer-events-none absolute left-2.5 top-2.5 h-3.5 w-3.5 text-[#9a968d]"
+          aria-hidden
+        />
+      ) : null}
+      <textarea
+        name={name}
+        className={cn(
+          "min-h-[88px] w-full rounded-md border border-[#d8d3c8] bg-white py-2 text-sm text-[#1a1a18] placeholder:text-[#9a968d] focus:border-[#1a1a18] focus:outline-none focus:ring-1 focus:ring-[#1a1a18]",
+          Icon ? "pl-8 pr-3" : "px-3",
+          className,
+        )}
+        {...props}
+      />
+    </div>
   );
 }
 

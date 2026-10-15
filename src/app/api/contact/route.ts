@@ -20,7 +20,7 @@ export async function POST(request: Request) {
   }
 
   const settings = await prisma.storeSettings.findUnique({ where: { id: "default" } });
-  const to = settings?.contactEmail ?? "hello@wunmzyco.com";
+  const to = settings?.contactEmail ?? "Wunmzy123@gmail.com";
 
   await sendEmail({
     to,

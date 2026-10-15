@@ -2,8 +2,9 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { Search, Tag, Package, Layers, ArrowRight } from "lucide-react";
+import { Tag, Package, Layers, ArrowRight } from "lucide-react";
 import { useStorefrontUi } from "@/components/providers/storefront-ui-provider";
+import { Input } from "@/components/ui/input";
 import { formatNgn } from "@/lib/currency";
 import { cn } from "@/lib/utils";
 
@@ -90,17 +91,15 @@ export function SearchDropdown() {
   return (
     <div className="absolute inset-x-0 top-full z-50 border-b border-border bg-background/98 shadow-lg backdrop-blur">
       <div ref={panelRef} className="mx-auto max-w-6xl px-4 py-4 sm:px-6">
-        <div className="relative">
-          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <input
-            ref={inputRef}
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search products, categories, collections…"
-            className="h-12 w-full border border-border bg-card pl-10 pr-4 text-sm outline-none ring-ring focus:ring-2"
-            aria-label="Search the store"
-          />
-        </div>
+        <Input
+          ref={inputRef}
+          name="q"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          placeholder="Search products, categories, collections…"
+          className="h-12 border-border bg-card"
+          aria-label="Search the store"
+        />
 
         <div className="mt-3 max-h-[60vh] overflow-y-auto">
           {!query.trim() ? (

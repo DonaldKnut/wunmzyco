@@ -1,27 +1,29 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import Image from "next/image";
 import { SparkleMark } from "@/components/storefront/illustrations";
+import { BRAND } from "@/lib/brand";
 import { cn } from "@/lib/utils";
+import { useEffect, useState } from "react";
 
 const SLIDES = [
   {
-    eyebrow: "Curated thrift",
-    title: "Style that feels like you",
-    body: "Thoughtfully selected women's fashion — quality pieces, fair prices, delivered across Nigeria.",
-    gradient: "from-[#2c2a26] via-[#3d3832] to-[#6b705c]",
+    eyebrow: BRAND.category,
+    title: BRAND.slogan,
+    body: `${BRAND.occasions.join(" · ")} — ${BRAND.tagline}.`,
+    gradient: "from-[#111111] via-[#2a2a2a] to-[#4a4a4a]",
   },
   {
-    eyebrow: "Shop with confidence",
-    title: "Secure checkout, clear delivery",
-    body: "Server-side pricing, tracked orders, and delivery zones you can trust — from Mainland to nationwide.",
-    gradient: "from-[#1f2a24] via-[#3a4a3a] to-[#9a8b7a]",
+    eyebrow: "Fashion & Accessories",
+    title: "Outfit for every occasion",
+    body: "Corporate polish, street energy, dinner elegance, and party-ready looks — styled by Wunmzy Co.",
+    gradient: "from-[#1a1a1a] via-[#333] to-[#6b705c]",
   },
   {
-    eyebrow: "One-of-one finds",
-    title: "Rare pieces, ready to wear",
-    body: "Discover unique thrift and like-new looks. When it's gone, it's gone — claimed only once.",
-    gradient: "from-[#3a2f2a] via-[#5c4a3e] to-[#c4b5a5]",
+    eyebrow: "Inquiries & orders",
+    title: "Be bold. Be confident. Be you.",
+    body: `WhatsApp or call ${BRAND.whatsappDisplay}. Find us at ${BRAND.webHandle}.`,
+    gradient: "from-[#111] via-[#2c241c] to-[#9a8b7a]",
   },
 ];
 
@@ -36,21 +38,31 @@ export function AuthPromoSlider() {
   const slide = SLIDES[index]!;
 
   return (
-    <div className={cn("relative flex h-full min-h-[420px] flex-col justify-between overflow-hidden p-10 text-[#f7f3ec] lg:min-h-full lg:p-14", `bg-gradient-to-br ${slide.gradient}`)}>
-      <div className="pointer-events-none absolute inset-0 opacity-30">
-        <div className="absolute -right-16 top-20 h-64 w-64 rounded-full bg-white/10 blur-3xl transition-all duration-700" />
-        <div className="absolute bottom-10 left-10 h-40 w-40 rounded-full bg-black/20 blur-2xl" />
+    <div
+      className={cn(
+        "relative flex h-full min-h-[420px] flex-col justify-between overflow-hidden p-10 text-[#f7f3ec] lg:min-h-full lg:p-14",
+        `bg-gradient-to-br ${slide.gradient}`,
+      )}
+    >
+      <div className="pointer-events-none absolute inset-0 opacity-25">
+        <div className="absolute -right-16 top-20 h-64 w-64 rounded-full bg-white/10 blur-3xl" />
       </div>
 
       <div className="relative z-10">
-        <p className="font-display text-3xl tracking-tight">Wunmzy Co</p>
-        <p className="mt-2 text-sm text-white/70">Women&apos;s thrift & fashion</p>
+        <Image
+          src={BRAND.logoUrl}
+          alt={BRAND.storeName}
+          width={220}
+          height={120}
+          className="h-16 w-auto object-contain brightness-0 invert sm:h-20"
+          priority
+        />
       </div>
 
-      <div className="relative z-10 max-w-md space-y-4 transition-all duration-500" key={slide.title}>
+      <div className="relative z-10 max-w-md space-y-4">
         <p className="inline-flex items-center gap-2 text-xs uppercase tracking-[0.2em] text-white/70">
-          <SparkleMark className="text-white/80" />
-          {slide.eyebrow}
+          <SparkleMark className="shrink-0 text-white/80" />
+          <span>{slide.eyebrow}</span>
         </p>
         <h2 className="font-display text-4xl leading-tight tracking-tight sm:text-5xl">{slide.title}</h2>
         <p className="text-base leading-relaxed text-white/80">{slide.body}</p>

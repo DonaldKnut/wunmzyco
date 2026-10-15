@@ -1,30 +1,32 @@
 "use server";
 
 import { redirect } from "next/navigation";
-import { z } from "zod";
 import { prisma } from "@/lib/db";
 import { createSession, destroySession, hashToken } from "@/lib/auth/session";
 import { hashPassword, validatePasswordStrength, verifyPassword } from "@/lib/auth/password";
 import { isStaffRole } from "@/lib/permissions";
+import {
+  forgotPasswordFormSchema,
+  loginFormSchema,
+  registerFormSchema,
+  resetPasswordFormSchema,
+} from "@/lib/schemas/auth";
 
 export type AuthFormState = { ok: boolean; message: string };
-
-const loginSchema = z.object({
-  email: z.string().email(),
-  password: z.string().min(1),
-});
 
 export async function loginAction(
   _prev: AuthFormState,
   formData: FormData,
 ): Promise<AuthFormState> {
-  const parsed = loginSchema.safeParse({
+  const parsed = loginFormSchema.safeParse({
     email: formData.get("email"),
     password: formData.get("password"),
+    next: formData.get("next") || undefined,
   });
   if (!parsed.success) {
     return { ok: false, message: "Check your email and password." };
   }
+  let staffRedirect: string | null = null;
   try {
     const user = await prisma.user.findUnique({ where: { email: parsed.data.email.toLowerCase() } });
     if (!user || !user.isActive) {
@@ -38,25 +40,19 @@ export async function loginAction(
     const next = String(formData.get("next") ?? "").trim();
     const safeNext = next.startsWith("/") ? next : "";
     if (isStaffRole(user.role)) {
-      redirect(safeNext || "/admin");
+      staffRedirect = safeNext || "/admin";
     }
   } catch {
     return { ok: false, message: "Unable to sign in right now." };
   }
-  redirect("/account");
+  redirect(staffRedirect || "/account");
 }
-
-const registerSchema = z.object({
-  name: z.string().min(2, "Name is too short"),
-  email: z.string().email(),
-  password: z.string().min(10),
-});
 
 export async function registerAction(
   _prev: AuthFormState,
   formData: FormData,
 ): Promise<AuthFormState> {
-  const parsed = registerSchema.safeParse({
+  const parsed = registerFormSchema.safeParse({
     name: formData.get("name"),
     email: formData.get("email"),
     password: formData.get("password"),
@@ -94,13 +90,11 @@ export async function logoutAction() {
   redirect("/");
 }
 
-const forgotSchema = z.object({ email: z.string().email() });
-
 export async function forgotPasswordAction(
   _prev: AuthFormState,
   formData: FormData,
 ): Promise<AuthFormState> {
-  const parsed = forgotSchema.safeParse({ email: formData.get("email") });
+  const parsed = forgotPasswordFormSchema.safeParse({ email: formData.get("email") });
   if (!parsed.success) {
     return { ok: false, message: "Enter a valid email." };
   }
@@ -119,7 +113,6 @@ export async function forgotPasswordAction(
           expiresAt,
         },
       });
-      // Email delivery wired separately; avoid leaking whether account exists.
     }
   } catch {
     // still show generic success
@@ -130,16 +123,11 @@ export async function forgotPasswordAction(
   };
 }
 
-const resetSchema = z.object({
-  token: z.string().min(1),
-  password: z.string().min(10),
-});
-
 export async function resetPasswordAction(
   _prev: AuthFormState,
   formData: FormData,
 ): Promise<AuthFormState> {
-  const parsed = resetSchema.safeParse({
+  const parsed = resetPasswordFormSchema.safeParse({
     token: formData.get("token"),
     password: formData.get("password"),
   });
