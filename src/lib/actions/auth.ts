@@ -42,8 +42,23 @@ export async function loginAction(
     if (isStaffRole(user.role)) {
       staffRedirect = safeNext || "/admin";
     }
-  } catch {
-    return { ok: false, message: "Unable to sign in right now." };
+  } catch (err) {
+    // Next.js redirect() throws; never swallow it as a login failure.
+    if (
+      err &&
+      typeof err === "object" &&
+      "digest" in err &&
+      typeof (err as { digest?: unknown }).digest === "string" &&
+      (err as { digest: string }).digest.startsWith("NEXT_REDIRECT")
+    ) {
+      throw err;
+    }
+    console.error("[loginAction]", err);
+    const detail =
+      process.env.NODE_ENV === "development" && err instanceof Error
+        ? ` (${err.message})`
+        : "";
+    return { ok: false, message: `Unable to sign in right now.${detail}` };
   }
   redirect(staffRedirect || "/account");
 }
