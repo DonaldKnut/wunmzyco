@@ -56,9 +56,8 @@ export function getEnv(): AppEnv {
 
   const data = parsed.data;
 
-  if (data.NODE_ENV === "production" && data.PAYMENT_PROVIDER === "mock") {
-    throw new Error("PAYMENT_PROVIDER=mock is not allowed in production");
-  }
+  // Do not throw here for mock payments — getEnv() is used by auth/session.
+  // Production mock checkout is blocked in the payments layer instead.
 
   if (data.PAYMENT_PROVIDER === "paystack") {
     if (!data.PAYSTACK_SECRET_KEY) {
