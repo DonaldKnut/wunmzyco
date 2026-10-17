@@ -5,5 +5,5 @@ import { destroySession } from "@/lib/auth/session";
 
 export async function logoutStaff(): Promise<void> {
   await destroySession();
-  redirect("/login?next=/admin");
+  redirect("/login?next=/admin&signedOut=1");
 }

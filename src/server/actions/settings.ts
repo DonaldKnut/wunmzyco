@@ -74,6 +74,10 @@ export async function updateStoreSettings(formData: FormData): Promise<ActionRes
     });
 
     revalidatePath("/admin/settings");
+    revalidatePath("/");
+    revalidatePath("/shipping-policy");
+    revalidatePath("/returns-policy");
+    revalidatePath("/about");
     return actionOk();
   } catch (e) {
     if (e instanceof Error && e.message === "FORBIDDEN") {

@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/db";
 import { slugify } from "@/lib/utils";
 import { writeAuditLog } from "@/lib/audit";
+import { revalidateStorefront } from "@/lib/admin/revalidate-storefront";
 import { actionRequirePermission } from "@/server/actions/helpers";
 import { actionError, actionOk, type ActionResult } from "@/server/actions/result";
 
@@ -37,6 +38,7 @@ export async function upsertCategory(formData: FormData): Promise<ActionResult> 
       entityId: id ?? undefined,
     });
     revalidatePath("/admin/categories");
+    revalidateStorefront({ categorySlug: slug });
     return actionOk();
   } catch (e) {
     if (e instanceof Error && e.message === "FORBIDDEN") {
@@ -77,6 +79,7 @@ export async function upsertCollection(formData: FormData): Promise<ActionResult
       entityId: id ?? undefined,
     });
     revalidatePath("/admin/collections");
+    revalidateStorefront();
     return actionOk();
   } catch (e) {
     if (e instanceof Error && e.message === "FORBIDDEN") {
@@ -118,6 +121,7 @@ export async function adjustInventory(formData: FormData): Promise<ActionResult>
 
     revalidatePath("/admin/inventory");
     revalidatePath("/admin/products");
+    revalidateStorefront();
     return actionOk();
   } catch (e) {
     const msg = e instanceof Error ? e.message : "Adjustment failed";

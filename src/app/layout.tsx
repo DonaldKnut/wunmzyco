@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 import { Cormorant_Garamond, DM_Sans } from "next/font/google";
+import { FlashToast } from "@/components/providers/flash-toast";
 import { ToasterProvider } from "@/components/providers/toaster-provider";
 import { WhatsAppChat } from "@/components/storefront/whatsapp-chat";
 import "./globals.css";
@@ -36,6 +38,9 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         {children}
         <WhatsAppChat />
         <ToasterProvider />
+        <Suspense fallback={null}>
+          <FlashToast />
+        </Suspense>
       </body>
     </html>
   );

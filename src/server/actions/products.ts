@@ -7,6 +7,7 @@ import { nairaToKobo } from "@/lib/currency";
 import { slugify } from "@/lib/utils";
 import { writeAuditLog } from "@/lib/audit";
 import { logger } from "@/lib/logger";
+import { revalidateStorefront } from "@/lib/admin/revalidate-storefront";
 import { actionRequirePermission } from "@/server/actions/helpers";
 import { actionError, actionOk, type ActionResult } from "@/server/actions/result";
 
@@ -20,6 +21,7 @@ function parseProductForm(formData: FormData) {
   const stock = Number(formData.get("stock") ?? 0);
   const lowStockAt = Number(formData.get("lowStockAt") ?? 2);
   const status = String(formData.get("status") ?? "DRAFT") as ProductStatus;
+  const isFeatured = formData.get("isFeatured") === "on";
   const categoryIds = formData.getAll("categoryIds").map(String);
 
   if (!name || !description || !sku) {
@@ -46,6 +48,7 @@ function parseProductForm(formData: FormData) {
     stock: Math.max(0, Math.floor(stock)),
     lowStockAt: Math.max(0, Math.floor(lowStockAt)),
     status,
+    isFeatured,
     categoryIds,
   };
 }
@@ -66,6 +69,7 @@ export async function createProduct(formData: FormData): Promise<ActionResult<{ 
         stock: data.stock,
         lowStockAt: data.lowStockAt,
         status: data.status,
+        isFeatured: data.isFeatured,
         publishedAt: data.status === "PUBLISHED" ? new Date() : null,
         categories: {
           create: data.categoryIds.map((categoryId) => ({ categoryId })),
@@ -80,6 +84,7 @@ export async function createProduct(formData: FormData): Promise<ActionResult<{ 
       entityId: product.id,
     });
     revalidatePath("/admin/products");
+    revalidateStorefront({ productSlug: product.slug });
     return actionOk({ id: product.id });
   } catch (e) {
     const msg = e instanceof Error ? e.message : "Failed to create product";
@@ -111,6 +116,7 @@ export async function updateProduct(
           stock: data.stock,
           lowStockAt: data.lowStockAt,
           status: data.status,
+          isFeatured: data.isFeatured,
           publishedAt:
             data.status === "PUBLISHED"
               ? new Date()
@@ -131,7 +137,7 @@ export async function updateProduct(
       entityId: productId,
     });
     revalidatePath("/admin/products");
-    revalidatePath(`/admin/products/${productId}/edit`);
+    revalidateStorefront({ productSlug: data.slug });
     return actionOk();
   } catch (e) {
     const msg = e instanceof Error ? e.message : "Failed to update product";
@@ -146,12 +152,13 @@ export async function setProductStatus(
 ): Promise<ActionResult> {
   try {
     const user = await actionRequirePermission("products:write");
-    await prisma.product.update({
+    const product = await prisma.product.update({
       where: { id: productId },
       data: {
         status,
         publishedAt: status === "PUBLISHED" ? new Date() : null,
       },
+      select: { slug: true },
     });
     await writeAuditLog({
       actorId: user.id,
@@ -160,11 +167,47 @@ export async function setProductStatus(
       entityId: productId,
     });
     revalidatePath("/admin/products");
+    revalidateStorefront({ productSlug: product.slug });
     return actionOk();
   } catch (e) {
     if (e instanceof Error && e.message === "FORBIDDEN") {
       return actionError("You do not have permission.");
     }
     return actionError("Failed to update status.");
+  }
+}
+
+export async function deleteProduct(productId: string): Promise<ActionResult> {
+  try {
+    const user = await actionRequirePermission("products:write");
+    const existing = await prisma.product.findUnique({
+      where: { id: productId },
+      select: { id: true, name: true, slug: true },
+    });
+    if (!existing) return actionError("Product not found.");
+
+    // InventoryMovement uses onDelete: Restrict; clear it first. Other relations cascade.
+    await prisma.$transaction([
+      prisma.inventoryMovement.deleteMany({ where: { productId } }),
+      prisma.product.delete({ where: { id: productId } }),
+    ]);
+
+    await writeAuditLog({
+      actorId: user.id,
+      action: "product.delete",
+      entityType: "Product",
+      entityId: productId,
+      metadata: { name: existing.name },
+    });
+    revalidatePath("/admin/products");
+    revalidateStorefront({ productSlug: existing.slug });
+    return actionOk();
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : "Failed to delete product";
+    if (msg === "FORBIDDEN") return actionError("You do not have permission.");
+    logger.error("delete_product_failed", { error: msg, productId });
+    return actionError(
+      "Could not delete this product. Archive it instead if it is linked to past orders.",
+    );
   }
 }

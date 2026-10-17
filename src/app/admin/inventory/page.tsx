@@ -3,6 +3,7 @@ import { requirePermission } from "@/lib/admin/auth";
 import { prisma } from "@/lib/db";
 import { hasPermission } from "@/lib/permissions";
 import { adjustInventory } from "@/server/actions/catalog";
+import { AdminFormModal } from "@/components/admin/form-modal";
 import {
   AdminCard,
   AdminCardBody,
@@ -23,6 +24,7 @@ import {
 export default async function AdminInventoryPage() {
   const user = await requirePermission("inventory:read");
   const canWrite = hasPermission(user.role, "inventory:write");
+  const canExport = hasPermission(user.role, "reports:export");
 
   const products = await prisma.product.findMany({
     where: { status: { not: "ARCHIVED" } },
@@ -35,14 +37,53 @@ export default async function AdminInventoryPage() {
   return (
     <>
       <PageHeader
+        icon="warehouse"
         title="Inventory"
         description="Stock levels and manual adjustments. Export CSV for offline reconciliation."
         actions={
-          hasPermission(user.role, "reports:export") ? (
-            <ButtonLink href="/admin/inventory/export" variant="secondary">
-              Export CSV
-            </ButtonLink>
-          ) : undefined
+          <div className="flex flex-wrap items-center gap-2">
+            {canExport ? (
+              <ButtonLink href="/admin/inventory/export" variant="secondary">
+                Export CSV
+              </ButtonLink>
+            ) : null}
+            {canWrite ? (
+              <AdminFormModal
+                title="Adjust stock"
+                description="Apply a positive or negative unit change with an optional reason."
+                triggerLabel="Adjust stock"
+                illustration="inventory"
+              >
+                <form
+                  action={async (formData) => {
+                    "use server";
+                    await adjustInventory(formData);
+                  }}
+                  className="grid gap-4"
+                >
+                  <Field label="Product">
+                    <Select name="productId" required defaultValue="">
+                      <option value="" disabled>
+                        Select product
+                      </option>
+                      {products.map((p) => (
+                        <option key={p.id} value={p.id}>
+                          {p.name} ({p.stock})
+                        </option>
+                      ))}
+                    </Select>
+                  </Field>
+                  <Field label="Change (+/− units)">
+                    <Input name="delta" type="number" required placeholder="e.g. -1 or 5" />
+                  </Field>
+                  <Field label="Reason">
+                    <Input name="reason" placeholder="Cycle count, damage, restock…" />
+                  </Field>
+                  <Button type="submit">Apply adjustment</Button>
+                </form>
+              </AdminFormModal>
+            ) : null}
+          </div>
         }
       />
 
@@ -55,7 +96,7 @@ export default async function AdminInventoryPage() {
           <AdminCardBody className="space-y-2 text-sm">
             {lowStock.map((p) => (
               <div key={p.id} className="flex justify-between gap-2">
-                <Link href={`/admin/products/${p.id}/edit`} className="hover:underline">
+                <Link href="/admin/products" className="hover:underline">
                   {p.name} ({p.sku})
                 </Link>
                 <Badge tone={p.stock === 0 ? "danger" : "warning"}>
@@ -67,45 +108,8 @@ export default async function AdminInventoryPage() {
         </AdminCard>
       ) : null}
 
-      {canWrite ? (
-        <AdminCard className="mb-6">
-          <AdminCardHeader title="Adjust stock" />
-          <AdminCardBody>
-            <form
-              action={async (formData) => {
-                "use server";
-                await adjustInventory(formData);
-              }}
-              className="grid max-w-xl gap-4 md:grid-cols-2"
-            >
-              <Field label="Product">
-                <Select name="productId" required defaultValue="">
-                  <option value="" disabled>
-                    Select product
-                  </option>
-                  {products.map((p) => (
-                    <option key={p.id} value={p.id}>
-                      {p.name} ({p.stock})
-                    </option>
-                  ))}
-                </Select>
-              </Field>
-              <Field label="Change (+/− units)">
-                <Input name="delta" type="number" required placeholder="e.g. -1 or 5" />
-              </Field>
-              <div className="md:col-span-2">
-                <Field label="Reason">
-                  <Input name="reason" placeholder="Cycle count, damage, restock…" />
-                </Field>
-              </div>
-              <Button type="submit">Apply adjustment</Button>
-            </form>
-          </AdminCardBody>
-        </AdminCard>
-      ) : null}
-
       {products.length === 0 ? (
-        <EmptyState title="No inventory records" />
+        <EmptyState title="No inventory records" icon="warehouse" />
       ) : (
         <DataTable>
           <thead>
@@ -121,7 +125,7 @@ export default async function AdminInventoryPage() {
             {products.map((p) => (
               <tr key={p.id}>
                 <Td>
-                  <Link href={`/admin/products/${p.id}/edit`} className="hover:underline">
+                  <Link href="/admin/products" className="hover:underline">
                     {p.name}
                   </Link>
                 </Td>

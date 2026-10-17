@@ -2,10 +2,8 @@ import { requirePermission } from "@/lib/admin/auth";
 import { prisma } from "@/lib/db";
 import { hasPermission } from "@/lib/permissions";
 import { upsertCategory } from "@/server/actions/catalog";
+import { AdminFormModal } from "@/components/admin/form-modal";
 import {
-  AdminCard,
-  AdminCardBody,
-  AdminCardHeader,
   Badge,
   Button,
   DataTable,
@@ -25,47 +23,56 @@ export default async function AdminCategoriesPage() {
 
   return (
     <>
-      <PageHeader title="Categories" description="Organize products for navigation and filters." />
-
-      {canWrite ? (
-        <AdminCard className="mb-6">
-          <AdminCardHeader title="Add category" />
-          <AdminCardBody>
-            <form
-              action={async (formData) => {
-                "use server";
-                await upsertCategory(formData);
-              }}
-              className="grid gap-4 md:grid-cols-2"
+      <PageHeader
+        icon="tags"
+        title="Categories"
+        description="Organize products for navigation and filters."
+        actions={
+          canWrite ? (
+            <AdminFormModal
+              title="Add category"
+              description="Create a category for storefront navigation and filters."
+              triggerLabel="Add category"
+              illustration="categories"
             >
-              <Field label="Name">
-                <Input name="name" required />
-              </Field>
-              <Field label="Slug">
-                <Input name="slug" placeholder="optional" />
-              </Field>
-              <Field label="Sort order">
-                <Input name="sortOrder" type="number" defaultValue={0} />
-              </Field>
-              <Field label="Active">
-                <label className="flex h-9 items-center gap-2 text-sm">
-                  <input type="checkbox" name="isActive" defaultChecked className="rounded" />
-                  Visible in catalog
-                </label>
-              </Field>
-              <div className="md:col-span-2">
-                <Field label="Description">
-                  <Textarea name="description" />
+              <form
+                action={async (formData) => {
+                  "use server";
+                  await upsertCategory(formData);
+                }}
+                className="grid gap-4 sm:grid-cols-2"
+              >
+                <Field label="Name">
+                  <Input name="name" required />
                 </Field>
-              </div>
-              <Button type="submit">Create category</Button>
-            </form>
-          </AdminCardBody>
-        </AdminCard>
-      ) : null}
+                <Field label="Slug">
+                  <Input name="slug" placeholder="optional" />
+                </Field>
+                <Field label="Sort order">
+                  <Input name="sortOrder" type="number" defaultValue={0} />
+                </Field>
+                <Field label="Active">
+                  <label className="flex h-9 items-center gap-2 text-sm">
+                    <input type="checkbox" name="isActive" defaultChecked className="rounded" />
+                    Visible in catalog
+                  </label>
+                </Field>
+                <div className="sm:col-span-2">
+                  <Field label="Description">
+                    <Textarea name="description" />
+                  </Field>
+                </div>
+                <Button type="submit" className="sm:col-span-2">
+                  Create category
+                </Button>
+              </form>
+            </AdminFormModal>
+          ) : undefined
+        }
+      />
 
       {categories.length === 0 ? (
-        <EmptyState title="No categories" />
+        <EmptyState title="No categories" icon="tags" />
       ) : (
         <DataTable>
           <thead>

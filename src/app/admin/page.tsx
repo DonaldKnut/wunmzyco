@@ -37,6 +37,7 @@ export default async function AdminOverviewPage({
       ) : null}
 
       <PageHeader
+        icon="dashboard"
         title="Overview"
         description="Live store metrics from your database. All figures tolerate an empty catalog and zero orders."
       />
@@ -142,7 +143,7 @@ export default async function AdminOverviewPage({
                 {metrics.lowStock.map((p) => (
                   <li key={p.id} className="flex justify-between">
                     <Link
-                      href={`/admin/products/${p.id}/edit`}
+                      href="/admin/products"
                       className="truncate hover:underline"
                     >
                       {p.name}

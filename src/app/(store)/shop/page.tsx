@@ -120,7 +120,7 @@ export default async function ShopPage({ searchParams }: PageProps<"/shop">) {
           illustration={<FashionRackIllustration />}
           title="Nothing on the rack"
           description="No published products match these filters yet. Add inventory from the admin dashboard, or clear filters to browse everything."
-          actionHref="/admin/products/new"
+          actionHref="/admin/products"
           actionLabel="Add products in admin"
         />
       ) : (

@@ -17,7 +17,6 @@ export default async function LoginPage({ searchParams }: PageProps<"/login">) {
   }
 
   const staffFlow = next?.startsWith("/admin");
-  const reset = params.reset;
 
   return (
     <AuthShell showMobilePromo>
@@ -31,12 +30,6 @@ export default async function LoginPage({ searchParams }: PageProps<"/login">) {
             : "Sign in to track orders, save addresses, and check out faster."}
         </p>
       </div>
-
-      {reset === "1" ? (
-        <p className="rounded-md border border-border bg-secondary/50 px-3 py-2 text-sm">
-          Password updated — you can sign in now.
-        </p>
-      ) : null}
 
       <LoginForm next={next} staffHint={staffFlow} />
     </AuthShell>

@@ -3,9 +3,45 @@
 import * as React from "react";
 import Link from "next/link";
 import type { LucideIcon } from "lucide-react";
-import { Eye, EyeOff } from "lucide-react";
+import {
+  Eye,
+  EyeOff,
+  Inbox,
+  Layers,
+  LayoutDashboard,
+  Package,
+  PackagePlus,
+  Settings,
+  ShoppingBag,
+  Tags,
+  Warehouse,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 import { resolveInputIcon } from "@/lib/ui/resolve-input-icon";
+
+/** String keys only — Lucide components cannot cross the RSC boundary. */
+export type AdminPageIcon =
+  | "dashboard"
+  | "packages"
+  | "package-plus"
+  | "orders"
+  | "tags"
+  | "layers"
+  | "warehouse"
+  | "settings"
+  | "inbox";
+
+const PAGE_ICONS: Record<AdminPageIcon, LucideIcon> = {
+  dashboard: LayoutDashboard,
+  packages: Package,
+  "package-plus": PackagePlus,
+  orders: ShoppingBag,
+  tags: Tags,
+  layers: Layers,
+  warehouse: Warehouse,
+  settings: Settings,
+  inbox: Inbox,
+};
 
 export function AdminCard({
   className,
@@ -84,18 +120,28 @@ export function PageHeader({
   title,
   description,
   actions,
+  icon,
 }: {
   title: string;
   description?: string;
   actions?: React.ReactNode;
+  icon?: AdminPageIcon;
 }) {
+  const Icon = icon ? PAGE_ICONS[icon] : null;
   return (
     <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
-      <div>
-        <h1 className="text-xl font-semibold tracking-tight text-[#1a1a18]">{title}</h1>
-        {description ? (
-          <p className="mt-1 max-w-2xl text-sm text-[#5c5a54]">{description}</p>
+      <div className="flex items-start gap-3">
+        {Icon ? (
+          <span className="mt-0.5 inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-[#e8e4dc] bg-white text-[#3d3b36]">
+            <Icon className="h-4 w-4" aria-hidden />
+          </span>
         ) : null}
+        <div>
+          <h1 className="text-xl font-semibold tracking-tight text-[#1a1a18]">{title}</h1>
+          {description ? (
+            <p className="mt-1 max-w-2xl text-sm text-[#5c5a54]">{description}</p>
+          ) : null}
+        </div>
       </div>
       {actions ? <div className="flex flex-wrap items-center gap-2">{actions}</div> : null}
     </div>
@@ -105,15 +151,13 @@ export function PageHeader({
 const buttonBase =
   "inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#1a1a18] disabled:pointer-events-none disabled:opacity-50";
 
-export function Button({
-  className,
-  variant = "primary",
-  size = "md",
-  ...props
-}: React.ButtonHTMLAttributes<HTMLButtonElement> & {
-  variant?: "primary" | "secondary" | "ghost" | "danger";
-  size?: "sm" | "md";
-}) {
+export const Button = React.forwardRef<
+  HTMLButtonElement,
+  React.ButtonHTMLAttributes<HTMLButtonElement> & {
+    variant?: "primary" | "secondary" | "ghost" | "danger";
+    size?: "sm" | "md";
+  }
+>(function Button({ className, variant = "primary", size = "md", ...props }, ref) {
   const variants = {
     primary: "bg-[#1a1a18] text-[#faf8f5] hover:bg-[#2d2d2a]",
     secondary: "border border-[#d8d3c8] bg-[#faf8f5] text-[#1a1a18] hover:bg-[#f0ebe3]",
@@ -123,11 +167,13 @@ export function Button({
   const sizes = { sm: "h-8 px-3 text-xs", md: "h-9 px-4" };
   return (
     <button
+      ref={ref}
       className={cn(buttonBase, variants[variant], sizes[size], className)}
       {...props}
     />
   );
-}
+});
+
 
 export function ButtonLink({
   href,
@@ -333,9 +379,21 @@ export function Td({ children, className }: { children?: React.ReactNode; classN
   );
 }
 
-export function EmptyState({ title, description }: { title: string; description?: string }) {
+export function EmptyState({
+  title,
+  description,
+  icon = "inbox",
+}: {
+  title: string;
+  description?: string;
+  icon?: AdminPageIcon;
+}) {
+  const Icon = PAGE_ICONS[icon] ?? Inbox;
   return (
     <div className="rounded-lg border border-dashed border-[#d8d3c8] bg-[#faf8f5]/60 px-6 py-10 text-center">
+      <span className="mx-auto mb-3 inline-flex h-10 w-10 items-center justify-center rounded-full bg-[#eee9e0] text-[#5c5a54]">
+        <Icon className="h-5 w-5" aria-hidden />
+      </span>
       <p className="text-sm font-medium text-[#1a1a18]">{title}</p>
       {description ? <p className="mt-1 text-sm text-[#5c5a54]">{description}</p> : null}
     </div>

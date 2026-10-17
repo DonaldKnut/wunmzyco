@@ -40,10 +40,11 @@ export function AuthPromoSlider() {
   return (
     <div
       className={cn(
-        "relative flex h-full min-h-[420px] flex-col justify-between overflow-hidden p-10 text-[#f7f3ec] lg:min-h-full lg:p-14",
+        "relative flex h-full min-h-[420px] flex-col justify-between overflow-hidden p-10 text-[#f7f3ec] lg:min-h-0 lg:p-14",
         `bg-gradient-to-br ${slide.gradient}`,
       )}
     >
+
       <div className="pointer-events-none absolute inset-0 opacity-25">
         <div className="absolute -right-16 top-20 h-64 w-64 rounded-full bg-white/10 blur-3xl" />
       </div>

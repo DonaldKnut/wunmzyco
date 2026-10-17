@@ -32,7 +32,7 @@ export default async function AdminOrdersPage() {
 
   return (
     <>
-      <PageHeader title="Orders" description="Fulfillment queue and order history." />
+      <PageHeader icon="orders" title="Orders" description="Fulfillment queue and order history." />
 
       {orders.length === 0 ? (
         <EmptyState title="No orders yet" />

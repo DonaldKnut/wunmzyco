@@ -25,7 +25,7 @@ export default async function AdminSettingsPage() {
 
   return (
     <>
-      <PageHeader title="Store settings" description="Branding, policies, and operational defaults." />
+      <PageHeader icon="settings" title="Store settings" description="Branding, policies, and operational defaults." />
 
       <AdminCard>
         <AdminCardHeader title="General" />

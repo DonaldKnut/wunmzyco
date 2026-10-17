@@ -72,7 +72,7 @@ export default async function HomePage() {
             illustration={<FashionRackIllustration />}
             title="The rail is waiting"
             description="No products published yet. Add pieces from the admin dashboard and they'll appear here."
-            actionHref="/admin/products/new"
+            actionHref="/admin/products"
             actionLabel="Add products in admin"
           />
         ) : (

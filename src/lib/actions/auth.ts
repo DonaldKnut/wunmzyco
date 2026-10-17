@@ -40,7 +40,8 @@ export async function loginAction(
     const next = String(formData.get("next") ?? "").trim();
     const safeNext = next.startsWith("/") ? next : "";
     if (isStaffRole(user.role)) {
-      staffRedirect = safeNext || "/admin";
+      const dest = safeNext || "/admin";
+      staffRedirect = dest.includes("?") ? `${dest}&signedIn=1` : `${dest}?signedIn=1`;
     }
   } catch (err) {
     // Next.js redirect() throws; never swallow it as a login failure.
@@ -60,7 +61,7 @@ export async function loginAction(
         : "";
     return { ok: false, message: `Unable to sign in right now.${detail}` };
   }
-  redirect(staffRedirect || "/account");
+  redirect(staffRedirect || "/account?signedIn=1");
 }
 
 export async function registerAction(
@@ -97,12 +98,12 @@ export async function registerAction(
   } catch {
     return { ok: false, message: "Unable to create account right now." };
   }
-  redirect("/account");
+  redirect("/account?signedIn=1");
 }
 
 export async function logoutAction() {
   await destroySession();
-  redirect("/");
+  redirect("/?signedOut=1");
 }
 
 export async function forgotPasswordAction(

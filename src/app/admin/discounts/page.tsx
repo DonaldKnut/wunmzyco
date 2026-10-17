@@ -3,10 +3,8 @@ import { koboToNaira } from "@/lib/currency";
 import { prisma } from "@/lib/db";
 import { hasPermission } from "@/lib/permissions";
 import { upsertCoupon } from "@/server/actions/discounts";
+import { AdminFormModal } from "@/components/admin/form-modal";
 import {
-  AdminCard,
-  AdminCardBody,
-  AdminCardHeader,
   Badge,
   Button,
   DataTable,
@@ -26,50 +24,59 @@ export default async function AdminDiscountsPage() {
 
   return (
     <>
-      <PageHeader title="Discounts" description="Coupon codes and promotional rules." />
-
-      {canWrite ? (
-        <AdminCard className="mb-6">
-          <AdminCardHeader title="Create coupon" />
-          <AdminCardBody>
-            <form
-              action={async (formData) => {
-                "use server";
-                await upsertCoupon(formData);
-              }}
-              className="grid gap-4 md:grid-cols-3"
+      <PageHeader
+        title="Discounts"
+        description="Coupon codes and promotional rules."
+        actions={
+          canWrite ? (
+            <AdminFormModal
+              title="Create coupon"
+              description="Set a percent or fixed amount off for checkout."
+              triggerLabel="Create coupon"
+              illustration="coupon"
+              contentClassName="max-w-3xl"
             >
-              <Field label="Code">
-                <Input name="code" required placeholder="WELCOME10" />
-              </Field>
-              <Field label="Percent off">
-                <Input name="percentOff" type="number" min="0" max="100" placeholder="optional" />
-              </Field>
-              <Field label="Amount off (₦)">
-                <Input name="amountOffNaira" type="number" step="0.01" placeholder="optional" />
-              </Field>
-              <Field label="Min subtotal (₦)">
-                <Input name="minSubtotalNaira" type="number" step="0.01" />
-              </Field>
-              <Field label="Max redemptions">
-                <Input name="maxRedemptions" type="number" min="1" />
-              </Field>
-              <Field label="Active">
-                <label className="flex h-9 items-center gap-2 text-sm">
-                  <input type="checkbox" name="isActive" defaultChecked />
-                  Active
-                </label>
-              </Field>
-              <div className="md:col-span-3">
-                <Field label="Description">
-                  <Textarea name="description" />
+              <form
+                action={async (formData) => {
+                  "use server";
+                  await upsertCoupon(formData);
+                }}
+                className="grid gap-4 sm:grid-cols-2"
+              >
+                <Field label="Code">
+                  <Input name="code" required placeholder="WELCOME10" />
                 </Field>
-              </div>
-              <Button type="submit">Create coupon</Button>
-            </form>
-          </AdminCardBody>
-        </AdminCard>
-      ) : null}
+                <Field label="Percent off">
+                  <Input name="percentOff" type="number" min="0" max="100" placeholder="optional" />
+                </Field>
+                <Field label="Amount off (₦)">
+                  <Input name="amountOffNaira" type="number" step="0.01" placeholder="optional" />
+                </Field>
+                <Field label="Min subtotal (₦)">
+                  <Input name="minSubtotalNaira" type="number" step="0.01" />
+                </Field>
+                <Field label="Max redemptions">
+                  <Input name="maxRedemptions" type="number" min="1" />
+                </Field>
+                <Field label="Active">
+                  <label className="flex h-9 items-center gap-2 text-sm">
+                    <input type="checkbox" name="isActive" defaultChecked />
+                    Active
+                  </label>
+                </Field>
+                <div className="sm:col-span-2">
+                  <Field label="Description">
+                    <Textarea name="description" />
+                  </Field>
+                </div>
+                <Button type="submit" className="sm:col-span-2">
+                  Create coupon
+                </Button>
+              </form>
+            </AdminFormModal>
+          ) : undefined
+        }
+      />
 
       {coupons.length === 0 ? (
         <EmptyState title="No coupons" />

@@ -3,10 +3,8 @@ import { formatRole } from "@/lib/admin/labels";
 import { ADMIN_ROLES } from "@/lib/permissions";
 import { prisma } from "@/lib/db";
 import { createAdminUser, updateAdminUser } from "@/server/actions/users";
+import { AdminFormModal } from "@/components/admin/form-modal";
 import {
-  AdminCard,
-  AdminCardBody,
-  AdminCardHeader,
   Badge,
   Button,
   DataTable,
@@ -41,45 +39,51 @@ export default async function AdminUsersPage() {
       <PageHeader
         title="Admin users"
         description="Super admin only. No public self-registration for staff accounts."
+        actions={
+          <AdminFormModal
+            title="Invite staff user"
+            description="Creates a staff account with a temporary password."
+            triggerLabel="Invite staff"
+            illustration="staff"
+          >
+            <form
+              action={async (formData) => {
+                "use server";
+                await createAdminUser(formData);
+              }}
+              className="grid gap-4 sm:grid-cols-2"
+            >
+              <Field label="Name">
+                <Input name="name" required />
+              </Field>
+              <Field label="Email">
+                <Input name="email" type="email" required />
+              </Field>
+              <Field label="Temporary password">
+                <Input name="password" type="password" required autoComplete="new-password" />
+              </Field>
+              <Field label="Role">
+                <Select name="role" defaultValue="SUPPORT">
+                  {ADMIN_ROLES.map((r) => (
+                    <option key={r} value={r}>
+                      {formatRole(r)}
+                    </option>
+                  ))}
+                </Select>
+              </Field>
+              <Button type="submit" className="sm:col-span-2">
+                Create staff account
+              </Button>
+            </form>
+          </AdminFormModal>
+        }
       />
 
-      <AdminCard className="mb-6">
-        <AdminCardHeader title="Invite staff user" />
-        <AdminCardBody>
-          <form
-            action={async (formData) => {
-              "use server";
-              await createAdminUser(formData);
-            }}
-            className="grid max-w-2xl gap-4 md:grid-cols-2"
-          >
-            <Field label="Name">
-              <Input name="name" required />
-            </Field>
-            <Field label="Email">
-              <Input name="email" type="email" required />
-            </Field>
-            <Field label="Temporary password">
-              <Input name="password" type="password" required autoComplete="new-password" />
-            </Field>
-            <Field label="Role">
-              <Select name="role" defaultValue="SUPPORT">
-                {ADMIN_ROLES.map((r) => (
-                  <option key={r} value={r}>
-                    {formatRole(r)}
-                  </option>
-                ))}
-              </Select>
-            </Field>
-            <Button type="submit" className="md:col-span-2">
-              Create staff account
-            </Button>
-          </form>
-        </AdminCardBody>
-      </AdminCard>
-
       {staff.length === 0 ? (
-        <EmptyState title="No staff users" description="Create the first admin account above." />
+        <EmptyState
+          title="No staff users"
+          description="Invite the first admin account with the button above."
+        />
       ) : (
         <DataTable>
           <thead>
