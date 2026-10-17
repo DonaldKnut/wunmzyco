@@ -11,7 +11,10 @@ export async function POST(request: Request) {
     return jsonError("Unauthorized", 401);
   }
 
-  if (!hasPermission(staff.role, "products:write")) {
+  if (
+    !hasPermission(staff.role, "products:write") &&
+    !hasPermission(staff.role, "settings:write")
+  ) {
     return jsonError("Forbidden", 403);
   }
 

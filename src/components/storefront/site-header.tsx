@@ -4,6 +4,7 @@ import { User } from "lucide-react";
 import { getStoreSettings } from "@/lib/store/settings";
 import { getCartItemCount } from "@/lib/cart";
 import { getSessionUser } from "@/lib/auth/session";
+import { isStaffRole } from "@/lib/permissions";
 import { Skeleton } from "@/components/ui/skeleton";
 import { HeaderClientActions } from "@/components/storefront/header-client-actions";
 import { SearchDropdown } from "@/components/storefront/search-dropdown";
@@ -19,8 +20,9 @@ const nav = [
 
 async function AccountLink() {
   const user = await getSessionUser();
-  const href = user ? "/account" : "/login";
-  const label = user ? user.name.split(" ")[0] ?? "Account" : "Sign in";
+  const staff = user && isStaffRole(user.role);
+  const href = staff ? "/admin" : user ? "/account" : "/login";
+  const label = staff ? "Admin" : user ? user.name.split(" ")[0] ?? "Account" : "Sign in";
   return (
     <Link href={href} className="inline-flex items-center gap-1.5 text-sm transition-opacity hover:opacity-70">
       <User className="h-4 w-4" />

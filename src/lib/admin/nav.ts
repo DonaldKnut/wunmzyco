@@ -16,6 +16,7 @@ import {
   Settings,
   Shield,
   ScrollText,
+  PanelsTopLeft,
 } from "lucide-react";
 import type { Permission } from "@/lib/permissions";
 
@@ -40,6 +41,7 @@ export const ADMIN_NAV: AdminNavItem[] = [
   { href: "/admin/reviews", label: "Reviews", permission: "reviews:read", icon: Star },
   { href: "/admin/newsletter", label: "Newsletter", permission: "newsletter:read", icon: Mail },
   { href: "/admin/reports", label: "Reports", permission: "reports:read", icon: BarChart3 },
+  { href: "/admin/homepage", label: "Homepage", permission: "settings:read", icon: PanelsTopLeft },
   { href: "/admin/settings", label: "Settings", permission: "settings:read", icon: Settings },
   { href: "/admin/users", label: "Admin users", permission: "admins:manage", icon: Shield },
   { href: "/admin/audit", label: "Audit log", permission: "audit:read", icon: ScrollText },

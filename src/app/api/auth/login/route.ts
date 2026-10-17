@@ -1,8 +1,10 @@
 import { prisma } from "@/lib/db";
 import { jsonError, jsonOk, enforceRateLimit, getClientIp } from "@/lib/api/http";
-import { loginSchema } from "@/lib/schemas/checkout";
+import { loginFormSchema } from "@/lib/schemas/auth";
 import { verifyPassword } from "@/lib/auth/password";
 import { createSession } from "@/lib/auth/session";
+import { isStaffRole } from "@/lib/permissions";
+import { firstZodMessage, zodFieldErrors } from "@/lib/forms/zod";
 
 export async function POST(request: Request) {
   const limited = await enforceRateLimit("auth:login", 10, 60_000);
@@ -15,9 +17,12 @@ export async function POST(request: Request) {
     return jsonError("Invalid JSON", 400);
   }
 
-  const parsed = loginSchema.safeParse(body);
+  const parsed = loginFormSchema.safeParse(body);
   if (!parsed.success) {
-    return jsonError("Validation failed", 422, { issues: parsed.error.issues });
+    return jsonError(firstZodMessage(parsed.error), 422, {
+      issues: parsed.error.issues,
+      fieldErrors: zodFieldErrors(parsed.error),
+    });
   }
 
   const email = parsed.data.email.toLowerCase();
@@ -32,6 +37,10 @@ export async function POST(request: Request) {
     return jsonError("Invalid email or password", 401);
   }
 
+  if (!isStaffRole(user.role)) {
+    return jsonError("Staff accounts only", 403);
+  }
+
   const ip = await getClientIp();
   const ua = request.headers.get("user-agent") ?? undefined;
   await createSession(user.id, { ipAddress: ip ?? undefined, userAgent: ua });
@@ -43,6 +52,7 @@ export async function POST(request: Request) {
       name: user.name,
       role: user.role,
       mustChangePassword: user.mustChangePassword,
+      redirectTo: "/admin",
     },
   });
 }

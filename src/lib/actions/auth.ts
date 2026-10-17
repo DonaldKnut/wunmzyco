@@ -3,8 +3,10 @@
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/db";
 import { createSession, destroySession, hashToken } from "@/lib/auth/session";
-import { hashPassword, validatePasswordStrength, verifyPassword } from "@/lib/auth/password";
+import { hashPassword, verifyPassword } from "@/lib/auth/password";
 import { isStaffRole } from "@/lib/permissions";
+import { safeAdminPath, setAuthFlash } from "@/lib/auth/flash";
+import { parseFormData } from "@/lib/forms/zod";
 import {
   forgotPasswordFormSchema,
   loginFormSchema,
@@ -12,39 +14,54 @@ import {
   resetPasswordFormSchema,
 } from "@/lib/schemas/auth";
 
-export type AuthFormState = { ok: boolean; message: string };
+export type AuthFormState = {
+  ok: boolean;
+  message: string;
+  fieldErrors?: Record<string, string>;
+};
+
+const initialFail = (message: string, fieldErrors?: Record<string, string>): AuthFormState => ({
+  ok: false,
+  message,
+  fieldErrors,
+});
 
 export async function loginAction(
   _prev: AuthFormState,
   formData: FormData,
 ): Promise<AuthFormState> {
-  const parsed = loginFormSchema.safeParse({
-    email: formData.get("email"),
-    password: formData.get("password"),
-    next: formData.get("next") || undefined,
-  });
-  if (!parsed.success) {
-    return { ok: false, message: "Check your email and password." };
+  const parsed = parseFormData(loginFormSchema, formData);
+  if (!parsed.ok) {
+    return initialFail(parsed.message, parsed.fieldErrors);
   }
-  let staffRedirect: string | null = null;
+
+  let destination = "/admin";
+
   try {
-    const user = await prisma.user.findUnique({ where: { email: parsed.data.email.toLowerCase() } });
+    const user = await prisma.user.findUnique({
+      where: { email: parsed.data.email.toLowerCase() },
+    });
+
     if (!user || !user.isActive) {
-      return { ok: false, message: "Invalid email or password." };
+      return initialFail("Invalid email or password.");
     }
+
     const valid = await verifyPassword(parsed.data.password, user.passwordHash);
     if (!valid) {
-      return { ok: false, message: "Invalid email or password." };
+      return initialFail("Invalid email or password.");
     }
+
+    // Admin portal only — customers shop as guests.
+    if (!isStaffRole(user.role)) {
+      return initialFail("This sign-in is for staff only.", {
+        email: "Staff account required.",
+      });
+    }
+
     await createSession(user.id);
-    const next = String(formData.get("next") ?? "").trim();
-    const safeNext = next.startsWith("/") ? next : "";
-    if (isStaffRole(user.role)) {
-      const dest = safeNext || "/admin";
-      staffRedirect = dest.includes("?") ? `${dest}&signedIn=1` : `${dest}?signedIn=1`;
-    }
+    destination = safeAdminPath(parsed.data.next);
+    await setAuthFlash("signedIn");
   } catch (err) {
-    // Next.js redirect() throws; never swallow it as a login failure.
     if (
       err &&
       typeof err === "object" &&
@@ -59,31 +76,29 @@ export async function loginAction(
       process.env.NODE_ENV === "development" && err instanceof Error
         ? ` (${err.message})`
         : "";
-    return { ok: false, message: `Unable to sign in right now.${detail}` };
+    return initialFail(`Unable to sign in right now.${detail}`);
   }
-  redirect(staffRedirect || "/account?signedIn=1");
+
+  redirect(destination);
 }
 
 export async function registerAction(
   _prev: AuthFormState,
   formData: FormData,
 ): Promise<AuthFormState> {
-  const parsed = registerFormSchema.safeParse({
-    name: formData.get("name"),
-    email: formData.get("email"),
-    password: formData.get("password"),
-  });
-  if (!parsed.success) {
-    return { ok: false, message: parsed.error.issues[0]?.message ?? "Invalid input" };
+  const parsed = parseFormData(registerFormSchema, formData);
+  if (!parsed.ok) {
+    return initialFail(parsed.message, parsed.fieldErrors);
   }
-  const strength = validatePasswordStrength(parsed.data.password);
-  if (strength) return { ok: false, message: strength };
+
   try {
     const existing = await prisma.user.findUnique({
       where: { email: parsed.data.email.toLowerCase() },
     });
     if (existing) {
-      return { ok: false, message: "An account with this email already exists." };
+      return initialFail("An account with this email already exists.", {
+        email: "Email already in use.",
+      });
     }
     const passwordHash = await hashPassword(parsed.data.password);
     const user = await prisma.user.create({
@@ -92,33 +107,36 @@ export async function registerAction(
         email: parsed.data.email.toLowerCase(),
         passwordHash,
         role: "CUSTOMER",
+        phone: parsed.data.phone || null,
       },
     });
     await createSession(user.id);
+    await setAuthFlash("signedIn");
   } catch {
-    return { ok: false, message: "Unable to create account right now." };
+    return initialFail("Unable to create account right now.");
   }
-  redirect("/account?signedIn=1");
+  redirect("/account");
 }
 
 export async function logoutAction() {
   await destroySession();
-  redirect("/?signedOut=1");
+  await setAuthFlash("signedOut");
+  redirect("/login");
 }
 
 export async function forgotPasswordAction(
   _prev: AuthFormState,
   formData: FormData,
 ): Promise<AuthFormState> {
-  const parsed = forgotPasswordFormSchema.safeParse({ email: formData.get("email") });
-  if (!parsed.success) {
-    return { ok: false, message: "Enter a valid email." };
+  const parsed = parseFormData(forgotPasswordFormSchema, formData);
+  if (!parsed.ok) {
+    return initialFail(parsed.message, parsed.fieldErrors);
   }
   try {
     const user = await prisma.user.findUnique({
       where: { email: parsed.data.email.toLowerCase() },
     });
-    if (user) {
+    if (user && isStaffRole(user.role)) {
       const { generateToken } = await import("@/lib/auth/session");
       const token = generateToken();
       const expiresAt = new Date(Date.now() + 60 * 60 * 1000);
@@ -135,7 +153,7 @@ export async function forgotPasswordAction(
   }
   return {
     ok: true,
-    message: "If an account exists for that email, reset instructions will be sent shortly.",
+    message: "If a staff account exists for that email, reset instructions will be sent shortly.",
   };
 }
 
@@ -143,15 +161,10 @@ export async function resetPasswordAction(
   _prev: AuthFormState,
   formData: FormData,
 ): Promise<AuthFormState> {
-  const parsed = resetPasswordFormSchema.safeParse({
-    token: formData.get("token"),
-    password: formData.get("password"),
-  });
-  if (!parsed.success) {
-    return { ok: false, message: parsed.error.issues[0]?.message ?? "Invalid input" };
+  const parsed = parseFormData(resetPasswordFormSchema, formData);
+  if (!parsed.ok) {
+    return initialFail(parsed.message, parsed.fieldErrors);
   }
-  const strength = validatePasswordStrength(parsed.data.password);
-  if (strength) return { ok: false, message: strength };
   try {
     const tokenHash = hashToken(parsed.data.token);
     const record = await prisma.passwordResetToken.findUnique({
@@ -159,18 +172,25 @@ export async function resetPasswordAction(
       include: { user: true },
     });
     if (!record || record.usedAt || record.expiresAt < new Date() || !record.user.isActive) {
-      return { ok: false, message: "This reset link is invalid or expired." };
+      return initialFail("This reset link is invalid or expired.");
+    }
+    if (!isStaffRole(record.user.role)) {
+      return initialFail("This reset link is invalid or expired.");
     }
     const passwordHash = await hashPassword(parsed.data.password);
     await prisma.$transaction([
-      prisma.user.update({ where: { id: record.userId }, data: { passwordHash } }),
+      prisma.user.update({
+        where: { id: record.userId },
+        data: { passwordHash, mustChangePassword: false },
+      }),
       prisma.passwordResetToken.update({
         where: { id: record.id },
         data: { usedAt: new Date() },
       }),
     ]);
+    await setAuthFlash("reset");
   } catch {
-    return { ok: false, message: "Unable to reset password." };
+    return initialFail("Unable to reset password.");
   }
-  redirect("/login?reset=1");
+  redirect("/login");
 }

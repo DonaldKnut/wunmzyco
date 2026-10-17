@@ -1,11 +1,14 @@
 import { redirect } from "next/navigation";
 import { logoutAction } from "@/lib/actions/auth";
 import { getSessionUser } from "@/lib/auth/session";
+import { isStaffRole } from "@/lib/permissions";
 import { AccountNav } from "@/components/storefront/account-nav";
 
 export default async function AccountLayout({ children }: LayoutProps<"/account">) {
   const user = await getSessionUser();
-  if (!user) redirect("/login?next=/account");
+  if (!user) redirect("/login");
+  // Staff live in the admin dashboard, not the shopper account area.
+  if (isStaffRole(user.role)) redirect("/admin");
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-12 sm:px-6">

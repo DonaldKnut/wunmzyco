@@ -1,37 +1,36 @@
 import { redirect } from "next/navigation";
 import { getSessionUser } from "@/lib/auth/session";
 import { isStaffRole } from "@/lib/permissions";
+import { safeAdminPath } from "@/lib/auth/flash";
 import { LoginForm } from "@/components/storefront/auth-forms";
 import { AuthShell } from "@/components/storefront/auth-shell";
 
-export const metadata = { title: "Sign in" };
+export const metadata = { title: "Staff sign in" };
 
 export default async function LoginPage({ searchParams }: PageProps<"/login">) {
   const params = await searchParams;
-  const next = typeof params.next === "string" ? params.next : undefined;
+  const nextRaw = typeof params.next === "string" ? params.next : undefined;
+  const next = safeAdminPath(nextRaw);
+
   const user = await getSessionUser();
   if (user) {
-    if (isStaffRole(user.role) && next?.startsWith("/")) redirect(next);
-    if (isStaffRole(user.role)) redirect("/admin");
-    redirect("/account");
+    if (isStaffRole(user.role)) redirect(next);
+    redirect("/");
   }
-
-  const staffFlow = next?.startsWith("/admin");
 
   return (
     <AuthShell showMobilePromo>
-      <div className="space-y-2">
-        <h1 className="font-display text-4xl tracking-tight">
-          {staffFlow ? "Staff sign in" : "Welcome back"}
-        </h1>
-        <p className="text-sm text-muted-foreground">
-          {staffFlow
-            ? "No public staff registration — ask a super admin for an account."
-            : "Sign in to track orders, save addresses, and check out faster."}
+      <div className="space-y-3">
+        <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-muted-foreground">
+          Wunmzy Co · Admin
+        </p>
+        <h1 className="font-display text-4xl tracking-tight sm:text-5xl">Sign in</h1>
+        <p className="max-w-sm text-sm leading-relaxed text-muted-foreground">
+          Enter your staff credentials to open the dashboard. One portal — straight to admin.
         </p>
       </div>
 
-      <LoginForm next={next} staffHint={staffFlow} />
+      <LoginForm next={next} />
     </AuthShell>
   );
 }

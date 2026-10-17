@@ -1,5 +1,6 @@
 import type { ZodType } from "zod";
 import { toast } from "sonner";
+import { firstZodMessage, zodFieldErrors } from "@/lib/forms/zod";
 
 export function formDataToObject(formData: FormData): Record<string, string> {
   const data: Record<string, string> = {};
@@ -9,20 +10,7 @@ export function formDataToObject(formData: FormData): Record<string, string> {
   return data;
 }
 
-export function zodFieldErrors(error: {
-  issues: { path: PropertyKey[]; message: string }[];
-}): Record<string, string> {
-  const out: Record<string, string> = {};
-  for (const issue of error.issues) {
-    const key = String(issue.path[0] ?? "");
-    if (key && !out[key]) out[key] = issue.message;
-  }
-  return out;
-}
-
-export function firstZodMessage(error: { issues: { message: string }[] }, fallback = "Please check the form.") {
-  return error.issues[0]?.message ?? fallback;
-}
+export { zodFieldErrors, firstZodMessage };
 
 /** Client-side Zod gate before submitting FormData to a server action. */
 export function validateFormData<T>(

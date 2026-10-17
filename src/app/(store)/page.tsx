@@ -6,6 +6,7 @@ import { HomeHeroSlider } from "@/components/storefront/home-hero-slider";
 import { HomeAdverts } from "@/components/storefront/home-adverts";
 import { FashionRackIllustration } from "@/components/storefront/illustrations";
 import { getStoreSettings } from "@/lib/store/settings";
+import { getHomepageSlides } from "@/lib/store/homepage";
 import {
   getActiveCategories,
   getFeaturedProducts,
@@ -13,8 +14,9 @@ import {
 } from "@/lib/store/products";
 
 export default async function HomePage() {
-  const [settings, featured, latest, categories] = await Promise.all([
+  const [settings, slides, featured, latest, categories] = await Promise.all([
     getStoreSettings(),
+    getHomepageSlides(),
     getFeaturedProducts(8),
     getLatestProducts(8),
     getActiveCategories(),
@@ -25,9 +27,10 @@ export default async function HomePage() {
   return (
     <div>
       <HomeHeroSlider
-        title={settings.homepageHeroTitle}
-        subtitle={settings.homepageHeroSubtitle}
-        tagline={settings.tagline}
+        slides={slides}
+        fallbackTitle={settings.homepageHeroTitle}
+        fallbackSubtitle={settings.homepageHeroSubtitle}
+        fallbackTagline={settings.tagline}
       />
 
       <HomeAdverts />

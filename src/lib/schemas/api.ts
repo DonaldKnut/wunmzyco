@@ -23,10 +23,15 @@ export const cartRemoveSchema = z.object({
   itemId: z.string().cuid(),
 });
 
-export {
-  forgotPasswordFormSchema as forgotPasswordSchema,
-  resetPasswordFormSchema as resetPasswordSchema,
-} from "@/lib/schemas/auth";
+import { forgotPasswordFormSchema, passwordSchema } from "@/lib/schemas/auth";
+
+export const forgotPasswordSchema = forgotPasswordFormSchema;
+
+/** API body — no confirmPassword (UI form validates match client-side). */
+export const resetPasswordSchema = z.object({
+  token: z.string().min(20, "Reset link is invalid or expired"),
+  password: passwordSchema,
+});
 
 export const deliveryQuoteQuerySchema = z.object({
   deliveryZoneId: z.string().cuid(),

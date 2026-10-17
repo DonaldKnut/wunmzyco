@@ -156,10 +156,53 @@ async function seedStoreSettings() {
   });
 }
 
+async function seedHomepageSlides() {
+  const count = await prisma.homepageSlide.count();
+  if (count > 0) return;
+  const { BRAND } = await import("../src/lib/brand");
+  await prisma.homepageSlide.createMany({
+    data: [
+      {
+        eyebrow: BRAND.tagline,
+        title: BRAND.slogan,
+        subtitle: BRAND.homepageHeroSubtitle,
+        ctaLabel: "Shop the edit",
+        ctaHref: "/shop",
+        imageUrl: BRAND.brandCardUrl,
+        imageAlt: BRAND.storeName,
+        tone: "from-[#f7f3ec] via-[#ebe4d8] to-[#d9cfc0]",
+        sortOrder: 0,
+        isActive: true,
+      },
+      {
+        eyebrow: BRAND.category,
+        title: "Corporate · Street · Dinner · Party",
+        subtitle: "Looks for every occasion — accessories and fashion that feel like you.",
+        ctaLabel: "Browse arrivals",
+        ctaHref: "/shop",
+        tone: "from-[#efe8df] via-[#e0d5c6] to-[#c9b8a4]",
+        sortOrder: 1,
+        isActive: true,
+      },
+      {
+        eyebrow: "Inquiries & orders",
+        title: "Talk to us on WhatsApp",
+        subtitle: `${BRAND.whatsappDisplay} · ${BRAND.webHandle}`,
+        ctaLabel: "Contact Wunmzy",
+        ctaHref: "/contact",
+        tone: "from-[#f3efe8] via-[#e8e1d4] to-[#b7c0a8]/40",
+        sortOrder: 2,
+        isActive: true,
+      },
+    ],
+  });
+}
+
 async function main() {
   console.log("Seeding Wunmzy Co foundation data…");
   await clearLegacyDemoCatalog();
   await seedStoreSettings();
+  await seedHomepageSlides();
   await seedDeliveryZones();
   console.log("Seed complete — no sample products. Add catalogue via /admin/products.");
   console.log("Create an admin with: npm run admin:bootstrap");

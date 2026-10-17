@@ -33,6 +33,11 @@ export function AdminSidebar({
     } catch {
       /* ignore */
     }
+    function expand() {
+      setCollapsed(false);
+    }
+    window.addEventListener("wunmzy-expand-sidebar", expand);
+    return () => window.removeEventListener("wunmzy-expand-sidebar", expand);
   }, []);
 
   function toggleCollapsed() {
@@ -46,6 +51,15 @@ export function AdminSidebar({
       return next;
     });
   }
+
+  const tourIdForHref = (href: string) => {
+    if (href === "/admin") return "nav-overview";
+    if (href === "/admin/products") return "nav-products";
+    if (href === "/admin/homepage") return "nav-homepage";
+    if (href === "/admin/orders") return "nav-orders";
+    if (href === "/admin/settings") return "nav-settings";
+    return undefined;
+  };
 
   const nav = (
     <>
@@ -78,11 +92,13 @@ export function AdminSidebar({
               item.href === "/admin"
                 ? pathname === "/admin"
                 : pathname === item.href || pathname.startsWith(`${item.href}/`);
+            const tourId = tourIdForHref(item.href);
             return (
               <li key={item.href}>
                 <Link
                   href={item.href}
                   title={item.label}
+                  data-tour={tourId}
                   className={cn(
                     "group flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-sm font-medium transition-colors",
                     collapsed && "justify-center px-2",
@@ -106,7 +122,10 @@ export function AdminSidebar({
         </ul>
       </nav>
 
-      <div className={cn("border-t border-[#e8e4dc] px-3 py-3", collapsed && "px-2")}>
+      <div
+        data-tour="account"
+        className={cn("border-t border-[#e8e4dc] px-3 py-3", collapsed && "px-2")}
+      >
         {!collapsed ? (
           <div className="mb-3 rounded-lg bg-white/70 px-3 py-2.5 text-xs text-[#5c5a54]">
             <p className="font-medium text-[#1a1a18]">{user.name}</p>
@@ -194,6 +213,7 @@ export function AdminSidebar({
 
       {/* Desktop fixed sidebar */}
       <aside
+        data-tour="sidebar"
         className={cn(
           "fixed inset-y-0 left-0 z-30 hidden flex-col border-r border-[#e8e4dc] bg-[#f5f2ec] transition-[width] duration-200 lg:flex",
           collapsed ? "w-[4.25rem]" : "w-60",

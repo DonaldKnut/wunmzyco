@@ -27,7 +27,7 @@ const SLIDES = [
   },
 ];
 
-export function AuthPromoSlider() {
+export function AuthPromoSlider({ compact = false }: { compact?: boolean }) {
   const [index, setIndex] = useState(0);
 
   useEffect(() => {
@@ -40,33 +40,48 @@ export function AuthPromoSlider() {
   return (
     <div
       className={cn(
-        "relative flex h-full min-h-[420px] flex-col justify-between overflow-hidden p-10 text-[#f7f3ec] lg:min-h-0 lg:p-14",
+        "relative flex h-full flex-col justify-between overflow-hidden text-[#f7f3ec]",
+        compact
+          ? "min-h-0 gap-4 p-5"
+          : "min-h-[420px] p-10 lg:min-h-0 lg:p-14",
         `bg-gradient-to-br ${slide.gradient}`,
       )}
     >
-
       <div className="pointer-events-none absolute inset-0 opacity-25">
         <div className="absolute -right-16 top-20 h-64 w-64 rounded-full bg-white/10 blur-3xl" />
       </div>
 
-      <div className="relative z-10">
-        <Image
-          src={BRAND.logoUrl}
-          alt={BRAND.storeName}
-          width={220}
-          height={120}
-          className="h-16 w-auto object-contain brightness-0 invert sm:h-20"
-          priority
-        />
-      </div>
+      {!compact ? (
+        <div className="relative z-10">
+          <Image
+            src={BRAND.logoUrl}
+            alt={BRAND.storeName}
+            width={220}
+            height={120}
+            className="h-16 w-auto object-contain brightness-0 invert sm:h-20"
+            priority
+          />
+        </div>
+      ) : null}
 
-      <div className="relative z-10 max-w-md space-y-4">
+      <div className={cn("relative z-10 max-w-md space-y-2", compact ? "space-y-1.5" : "space-y-4")}>
         <p className="inline-flex items-center gap-2 text-xs uppercase tracking-[0.2em] text-white/70">
           <SparkleMark className="shrink-0 text-white/80" />
           <span>{slide.eyebrow}</span>
         </p>
-        <h2 className="font-display text-4xl leading-tight tracking-tight sm:text-5xl">{slide.title}</h2>
-        <p className="text-base leading-relaxed text-white/80">{slide.body}</p>
+        <h2
+          className={cn(
+            "font-display leading-tight tracking-tight",
+            compact ? "text-xl" : "text-4xl sm:text-5xl",
+          )}
+        >
+          {slide.title}
+        </h2>
+        {!compact ? (
+          <p className="text-base leading-relaxed text-white/80">{slide.body}</p>
+        ) : (
+          <p className="line-clamp-2 text-sm leading-relaxed text-white/75">{slide.body}</p>
+        )}
       </div>
 
       <div className="relative z-10 flex items-center gap-2">

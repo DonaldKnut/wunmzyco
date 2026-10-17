@@ -20,6 +20,7 @@ import { validateFormData } from "@/lib/forms/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { cn } from "@/lib/utils";
 
 const initial: AuthFormState = { ok: false, message: "" };
 
@@ -32,7 +33,7 @@ function FieldError({ message }: { message?: string }) {
   );
 }
 
-function useActionToast(state: AuthFormState) {
+function useActionFeedback(state: AuthFormState) {
   useEffect(() => {
     if (!state.message) return;
     if (state.ok) toast.success(state.message);
@@ -40,20 +41,22 @@ function useActionToast(state: AuthFormState) {
   }, [state]);
 }
 
-export function LoginForm({
-  next,
-  staffHint,
-}: {
-  next?: string;
-  staffHint?: boolean;
-}) {
+function mergeErrors(
+  client: Record<string, string>,
+  server?: Record<string, string>,
+): Record<string, string> {
+  return { ...client, ...(server ?? {}) };
+}
+
+export function LoginForm({ next }: { next?: string }) {
   const [state, action, pending] = useActionState(loginAction, initial);
   const [errors, setErrors] = useState<Record<string, string>>({});
-  useActionToast(state);
+  useActionFeedback(state);
+
+  const fieldErrors = mergeErrors(errors, state.fieldErrors);
 
   function onSubmit(e: FormEvent<HTMLFormElement>) {
-    const form = e.currentTarget;
-    const formData = new FormData(form);
+    const formData = new FormData(e.currentTarget);
     const result = validateFormData(loginFormSchema, formData);
     if (!result.ok) {
       e.preventDefault();
@@ -64,43 +67,49 @@ export function LoginForm({
   }
 
   return (
-    <form action={action} onSubmit={onSubmit} className="w-full space-y-4" noValidate>
-      {next ? <input type="hidden" name="next" value={next} /> : null}
+    <form action={action} onSubmit={onSubmit} className="w-full space-y-5" noValidate>
+      <input type="hidden" name="next" value={next && next.startsWith("/admin") ? next : "/admin"} />
+
       <div className="space-y-2">
-        <Label htmlFor="email">Email</Label>
-        <Input id="email" name="email" type="email" autoComplete="email" aria-invalid={!!errors.email} />
-        <FieldError message={errors.email} />
+        <Label htmlFor="email">Work email</Label>
+        <Input
+          id="email"
+          name="email"
+          type="email"
+          autoComplete="username"
+          placeholder="you@wunmzyco.com"
+          aria-invalid={!!fieldErrors.email}
+          className={cn(fieldErrors.email && "border-destructive")}
+          disabled={pending}
+        />
+        <FieldError message={fieldErrors.email} />
       </div>
+
       <div className="space-y-2">
-        <Label htmlFor="password">Password</Label>
+        <div className="flex items-center justify-between gap-2">
+          <Label htmlFor="password">Password</Label>
+          <Link
+            href="/forgot-password"
+            className="text-xs text-muted-foreground underline-offset-4 hover:underline"
+          >
+            Forgot password?
+          </Link>
+        </div>
         <Input
           id="password"
           name="password"
           type="password"
           autoComplete="current-password"
-          aria-invalid={!!errors.password}
+          aria-invalid={!!fieldErrors.password}
+          className={cn(fieldErrors.password && "border-destructive")}
+          disabled={pending}
         />
-        <FieldError message={errors.password} />
+        <FieldError message={fieldErrors.password} />
       </div>
-      <Button type="submit" className="w-full" disabled={pending}>
-        {pending ? "Signing in…" : "Sign in"}
+
+      <Button type="submit" className="h-11 w-full" disabled={pending}>
+        {pending ? "Signing in…" : "Sign in to dashboard"}
       </Button>
-      {staffHint ? (
-        <p className="text-center text-xs text-muted-foreground">
-          Staff sign-in only — customer accounts use the same form but cannot access admin
-          without a staff role.
-        </p>
-      ) : (
-        <p className="text-center text-sm text-muted-foreground">
-          <Link href="/forgot-password" className="underline-offset-4 hover:underline">
-            Forgot password?
-          </Link>
-          {" · "}
-          <Link href="/register" className="underline-offset-4 hover:underline">
-            Create account
-          </Link>
-        </p>
-      )}
     </form>
   );
 }
@@ -108,7 +117,8 @@ export function LoginForm({
 export function RegisterForm() {
   const [state, action, pending] = useActionState(registerAction, initial);
   const [errors, setErrors] = useState<Record<string, string>>({});
-  useActionToast(state);
+  useActionFeedback(state);
+  const fieldErrors = mergeErrors(errors, state.fieldErrors);
 
   function onSubmit(e: FormEvent<HTMLFormElement>) {
     const formData = new FormData(e.currentTarget);
@@ -125,13 +135,20 @@ export function RegisterForm() {
     <form action={action} onSubmit={onSubmit} className="w-full space-y-4" noValidate>
       <div className="space-y-2">
         <Label htmlFor="name">Name</Label>
-        <Input id="name" name="name" autoComplete="name" aria-invalid={!!errors.name} />
-        <FieldError message={errors.name} />
+        <Input id="name" name="name" autoComplete="name" aria-invalid={!!fieldErrors.name} disabled={pending} />
+        <FieldError message={fieldErrors.name} />
       </div>
       <div className="space-y-2">
         <Label htmlFor="email">Email</Label>
-        <Input id="email" name="email" type="email" autoComplete="email" aria-invalid={!!errors.email} />
-        <FieldError message={errors.email} />
+        <Input
+          id="email"
+          name="email"
+          type="email"
+          autoComplete="email"
+          aria-invalid={!!fieldErrors.email}
+          disabled={pending}
+        />
+        <FieldError message={fieldErrors.email} />
       </div>
       <div className="space-y-2">
         <Label htmlFor="password">Password</Label>
@@ -140,20 +157,21 @@ export function RegisterForm() {
           name="password"
           type="password"
           autoComplete="new-password"
-          aria-invalid={!!errors.password}
+          aria-invalid={!!fieldErrors.password}
+          disabled={pending}
         />
         <p className="text-xs text-muted-foreground">
           At least 10 characters with upper, lower, and a number.
         </p>
-        <FieldError message={errors.password} />
+        <FieldError message={fieldErrors.password} />
       </div>
       <Button type="submit" className="w-full" disabled={pending}>
         {pending ? "Creating…" : "Create account"}
       </Button>
       <p className="text-center text-sm text-muted-foreground">
-        Already have an account?{" "}
+        Staff?{" "}
         <Link href="/login" className="underline-offset-4 hover:underline">
-          Sign in
+          Sign in here
         </Link>
       </p>
     </form>
@@ -163,7 +181,8 @@ export function RegisterForm() {
 export function ForgotPasswordForm() {
   const [state, action, pending] = useActionState(forgotPasswordAction, initial);
   const [errors, setErrors] = useState<Record<string, string>>({});
-  useActionToast(state);
+  useActionFeedback(state);
+  const fieldErrors = mergeErrors(errors, state.fieldErrors);
 
   function onSubmit(e: FormEvent<HTMLFormElement>) {
     const formData = new FormData(e.currentTarget);
@@ -177,13 +196,20 @@ export function ForgotPasswordForm() {
   }
 
   return (
-    <form action={action} onSubmit={onSubmit} className="w-full space-y-4" noValidate>
+    <form action={action} onSubmit={onSubmit} className="w-full space-y-5" noValidate>
       <div className="space-y-2">
-        <Label htmlFor="email">Email</Label>
-        <Input id="email" name="email" type="email" autoComplete="email" aria-invalid={!!errors.email} />
-        <FieldError message={errors.email} />
+        <Label htmlFor="email">Work email</Label>
+        <Input
+          id="email"
+          name="email"
+          type="email"
+          autoComplete="email"
+          aria-invalid={!!fieldErrors.email}
+          disabled={pending}
+        />
+        <FieldError message={fieldErrors.email} />
       </div>
-      <Button type="submit" className="w-full" disabled={pending}>
+      <Button type="submit" className="h-11 w-full" disabled={pending}>
         {pending ? "Sending…" : "Send reset link"}
       </Button>
       <p className="text-center text-sm text-muted-foreground">
@@ -198,7 +224,8 @@ export function ForgotPasswordForm() {
 export function ResetPasswordForm({ token }: { token: string }) {
   const [state, action, pending] = useActionState(resetPasswordAction, initial);
   const [errors, setErrors] = useState<Record<string, string>>({});
-  useActionToast(state);
+  useActionFeedback(state);
+  const fieldErrors = mergeErrors(errors, state.fieldErrors);
 
   function onSubmit(e: FormEvent<HTMLFormElement>) {
     const formData = new FormData(e.currentTarget);
@@ -212,7 +239,7 @@ export function ResetPasswordForm({ token }: { token: string }) {
   }
 
   return (
-    <form action={action} onSubmit={onSubmit} className="w-full space-y-4" noValidate>
+    <form action={action} onSubmit={onSubmit} className="w-full space-y-5" noValidate>
       <input type="hidden" name="token" value={token} />
       <div className="space-y-2">
         <Label htmlFor="password">New password</Label>
@@ -221,11 +248,27 @@ export function ResetPasswordForm({ token }: { token: string }) {
           name="password"
           type="password"
           autoComplete="new-password"
-          aria-invalid={!!errors.password}
+          aria-invalid={!!fieldErrors.password}
+          disabled={pending}
         />
-        <FieldError message={errors.password} />
+        <p className="text-xs text-muted-foreground">
+          At least 10 characters with upper, lower, and a number.
+        </p>
+        <FieldError message={fieldErrors.password} />
       </div>
-      <Button type="submit" className="w-full" disabled={pending}>
+      <div className="space-y-2">
+        <Label htmlFor="confirmPassword">Confirm password</Label>
+        <Input
+          id="confirmPassword"
+          name="confirmPassword"
+          type="password"
+          autoComplete="new-password"
+          aria-invalid={!!fieldErrors.confirmPassword}
+          disabled={pending}
+        />
+        <FieldError message={fieldErrors.confirmPassword} />
+      </div>
+      <Button type="submit" className="h-11 w-full" disabled={pending}>
         {pending ? "Saving…" : "Update password"}
       </Button>
     </form>

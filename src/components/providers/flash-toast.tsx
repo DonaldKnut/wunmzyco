@@ -1,48 +1,36 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { toast } from "sonner";
+import { AUTH_FLASH_COOKIE } from "@/lib/auth/flash-constants";
 
-const MESSAGES: Record<string, { type: "success" | "info"; text: string }> = {
-  signedIn: { type: "success", text: "Signed in successfully" },
-  signedOut: { type: "success", text: "Signed out" },
-  reset: { type: "success", text: "Password updated — you can sign in now" },
+const MESSAGES: Record<string, string> = {
+  signedIn: "Signed in — welcome back",
+  signedOut: "Signed out",
+  reset: "Password updated — sign in with your new password",
 };
 
-/** Shows one-shot toasts from URL query flags, then strips them from the URL. */
+function readAndClearFlash(): string | null {
+  if (typeof document === "undefined") return null;
+  const match = document.cookie.match(new RegExp(`(?:^|; )${AUTH_FLASH_COOKIE}=([^;]*)`));
+  if (!match?.[1]) return null;
+  const value = decodeURIComponent(match[1]);
+  document.cookie = `${AUTH_FLASH_COOKIE}=; Max-Age=0; path=/; SameSite=Lax`;
+  return value;
+}
+
+/** Reads a one-shot flash cookie and toasts — no URL rewrite / navigation bounce. */
 export function FlashToast() {
-  const params = useSearchParams();
-  const pathname = usePathname();
-  const router = useRouter();
-  const seen = useRef<string | null>(null);
+  const seen = useRef(false);
 
   useEffect(() => {
-    const key =
-      params.get("signedIn") === "1"
-        ? "signedIn"
-        : params.get("signedOut") === "1"
-          ? "signedOut"
-          : params.get("reset") === "1"
-            ? "reset"
-            : null;
-    if (!key) return;
-
-    const token = `${pathname}?${key}`;
-    if (seen.current === token) return;
-    seen.current = token;
-
-    const msg = MESSAGES[key];
-    if (msg?.type === "success") toast.success(msg.text);
-    else if (msg) toast.message(msg.text);
-
-    const next = new URLSearchParams(params.toString());
-    next.delete("signedIn");
-    next.delete("signedOut");
-    next.delete("reset");
-    const qs = next.toString();
-    router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
-  }, [params, pathname, router]);
+    if (seen.current) return;
+    const kind = readAndClearFlash();
+    if (!kind) return;
+    seen.current = true;
+    const text = MESSAGES[kind];
+    if (text) toast.success(text);
+  }, []);
 
   return null;
 }

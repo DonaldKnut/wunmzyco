@@ -10,7 +10,10 @@ export default async function ResetPasswordPage({ searchParams }: PageProps<"/re
 
   return (
     <AuthShell>
-      <div className="space-y-2">
+      <div className="space-y-3">
+        <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-muted-foreground">
+          Wunmzy Co · Admin
+        </p>
         <h1 className="font-display text-4xl tracking-tight">
           {resetToken ? "Choose a new password" : "Reset password"}
         </h1>
@@ -23,7 +26,9 @@ export default async function ResetPasswordPage({ searchParams }: PageProps<"/re
             .
           </p>
         ) : (
-          <p className="text-sm text-muted-foreground">Pick a strong password for your account.</p>
+          <p className="text-sm leading-relaxed text-muted-foreground">
+            Pick a strong password for your staff account, then sign in to the dashboard.
+          </p>
         )}
       </div>
       {resetToken ? <ResetPasswordForm token={resetToken} /> : null}

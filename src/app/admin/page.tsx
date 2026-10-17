@@ -50,7 +50,7 @@ export default async function AdminOverviewPage({
         the refund completes.
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      <div data-tour="metrics" className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <StatCard
           label="Gross paid sales (net of refunds)"
           value={formatNgn(metrics.grossPaidSalesKobo)}

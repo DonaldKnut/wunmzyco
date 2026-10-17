@@ -115,6 +115,17 @@ export function WhatsAppChat({
   }, [open]);
 
   if (hideOnAdmin && pathname?.startsWith("/admin")) return null;
+  // Keep auth screens clear — FAB/panel can cover mobile inputs
+  if (
+    pathname === "/login" ||
+    pathname === "/register" ||
+    pathname === "/forgot-password" ||
+    pathname === "/reset-password" ||
+    pathname?.startsWith("/login") ||
+    pathname?.startsWith("/reset-password")
+  ) {
+    return null;
+  }
   if (!mounted) return null;
 
   const href = whatsappLink(

@@ -1,6 +1,7 @@
 import { jsonError, jsonOk, enforceRateLimit } from "@/lib/api/http";
 import { forgotPasswordSchema } from "@/lib/schemas/api";
 import { createPasswordResetToken } from "@/lib/auth/reset";
+import { firstZodMessage, zodFieldErrors } from "@/lib/forms/zod";
 
 export async function POST(request: Request) {
   const limited = await enforceRateLimit("auth:forgot", 5, 60_000);
@@ -15,12 +16,15 @@ export async function POST(request: Request) {
 
   const parsed = forgotPasswordSchema.safeParse(body);
   if (!parsed.success) {
-    return jsonError("Validation failed", 422, { issues: parsed.error.issues });
+    return jsonError(firstZodMessage(parsed.error), 422, {
+      issues: parsed.error.issues,
+      fieldErrors: zodFieldErrors(parsed.error),
+    });
   }
 
   await createPasswordResetToken(parsed.data.email);
 
   return jsonOk({
-    message: "If an account exists for that email, a reset link has been sent.",
+    message: "If a staff account exists for that email, a reset link has been sent.",
   });
 }

@@ -11,6 +11,7 @@ import {
   LayoutDashboard,
   Package,
   PackagePlus,
+  PanelsTopLeft,
   Settings,
   ShoppingBag,
   Tags,
@@ -29,6 +30,7 @@ export type AdminPageIcon =
   | "layers"
   | "warehouse"
   | "settings"
+  | "homepage"
   | "inbox";
 
 const PAGE_ICONS: Record<AdminPageIcon, LucideIcon> = {
@@ -40,6 +42,7 @@ const PAGE_ICONS: Record<AdminPageIcon, LucideIcon> = {
   layers: Layers,
   warehouse: Warehouse,
   settings: Settings,
+  homepage: PanelsTopLeft,
   inbox: Inbox,
 };
 

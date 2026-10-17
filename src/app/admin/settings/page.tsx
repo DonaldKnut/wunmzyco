@@ -95,12 +95,15 @@ export default async function AdminSettingsPage() {
               </Field>
             </div>
 
-            <Field label="Homepage hero title">
-              <Input name="homepageHeroTitle" defaultValue={settings.homepageHeroTitle} disabled={!canWrite} />
-            </Field>
-            <Field label="Homepage hero subtitle">
-              <Textarea name="homepageHeroSubtitle" defaultValue={settings.homepageHeroSubtitle} disabled={!canWrite} />
-            </Field>
+            <p className="rounded-md border border-[#e8e4dc] bg-[#f5f2ec] px-3 py-2 text-xs text-[#5c5a54]">
+              Homepage hero copy, announcement, and slider images are managed under{" "}
+              <a href="/admin/homepage" className="font-medium text-[#1a1a18] underline">
+                Admin → Homepage
+              </a>
+              .
+            </p>
+            <input type="hidden" name="homepageHeroTitle" value={settings.homepageHeroTitle} />
+            <input type="hidden" name="homepageHeroSubtitle" value={settings.homepageHeroSubtitle} />
             <Field label="About copy">
               <Textarea name="aboutCopy" defaultValue={settings.aboutCopy ?? ""} disabled={!canWrite} />
             </Field>

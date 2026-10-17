@@ -718,6 +718,25 @@ model StoreSettings {
   updatedAt             DateTime @updatedAt
 }
 
+/** Editable homepage hero carousel slides (managed in Admin → Homepage). */
+model HomepageSlide {
+  id         String   @id @default(cuid())
+  eyebrow    String   @default("")
+  title      String
+  subtitle   String   @default("")
+  ctaLabel   String   @default("Shop the edit")
+  ctaHref    String   @default("/shop")
+  imageUrl   String?
+  imageAlt   String?
+  tone       String   @default("from-[#f7f3ec] via-[#ebe4d8] to-[#d9cfc0]")
+  sortOrder  Int      @default(0)
+  isActive   Boolean  @default(true)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([isActive, sortOrder])
+}
+
 model AuditLog {
   id         String   @id @default(cuid())
   actorId    String?
