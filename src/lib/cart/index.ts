@@ -239,6 +239,16 @@ export function cartToCheckoutItems(
   }));
 }
 
+export async function clearCart(): Promise<void> {
+  try {
+    const cartId = await getOrCreateCartId();
+    if (!cartId) return;
+    await prisma.cartItem.deleteMany({ where: { cartId } });
+  } catch {
+    // ignore — order already placed
+  }
+}
+
 export async function getCartLines(): Promise<CartLineView[]> {
   try {
     const cartId = await getOrCreateCartId();

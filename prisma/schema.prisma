@@ -41,6 +41,11 @@ enum OrderStatus {
   PARTIALLY_REFUNDED
 }
 
+enum OrderChannel {
+  WEB
+  WHATSAPP
+}
+
 enum PaymentStatus {
   PENDING
   SUCCESSFUL
@@ -444,6 +449,7 @@ model Order {
   guestPhone          String
   customerName        String
   status              OrderStatus    @default(PENDING_PAYMENT)
+  channel             OrderChannel   @default(WEB)
   deliveryStatus      DeliveryStatus @default(NOT_STARTED)
   currency            String         @default("NGN")
   subtotalKobo        Int
@@ -484,6 +490,7 @@ model Order {
 
   @@index([userId])
   @@index([status, createdAt])
+  @@index([channel, status, createdAt])
   @@index([guestEmail])
   @@index([createdAt])
 }

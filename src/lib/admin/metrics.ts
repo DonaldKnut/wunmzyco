@@ -28,6 +28,7 @@ export async function getDashboardMetrics() {
     paymentStatusGroups,
     paidOrderCount,
     recentOrders,
+    pendingWhatsAppOrders,
     bestSellerRows,
     lowStockCandidates,
   ] = await Promise.all([
@@ -65,9 +66,13 @@ export async function getDashboardMetrics() {
         orderNumber: true,
         customerName: true,
         status: true,
+        channel: true,
         totalKobo: true,
         createdAt: true,
       },
+    }),
+    prisma.order.count({
+      where: { channel: "WHATSAPP", status: "PENDING_PAYMENT" },
     }),
     prisma.orderItem.groupBy({
       by: ["productId"],
@@ -144,5 +149,6 @@ export async function getDashboardMetrics() {
     bestSellers,
     lowStock: lowStockFiltered,
     recentOrders,
+    pendingWhatsAppOrders,
   };
 }

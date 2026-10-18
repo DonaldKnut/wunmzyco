@@ -36,8 +36,21 @@ export function AdminSidebar({
     function expand() {
       setCollapsed(false);
     }
+    function openMobile() {
+      setMobileOpen(true);
+      setCollapsed(false);
+    }
+    function closeMobile() {
+      setMobileOpen(false);
+    }
     window.addEventListener("wunmzy-expand-sidebar", expand);
-    return () => window.removeEventListener("wunmzy-expand-sidebar", expand);
+    window.addEventListener("wunmzy-open-mobile-sidebar", openMobile);
+    window.addEventListener("wunmzy-close-mobile-sidebar", closeMobile);
+    return () => {
+      window.removeEventListener("wunmzy-expand-sidebar", expand);
+      window.removeEventListener("wunmzy-open-mobile-sidebar", openMobile);
+      window.removeEventListener("wunmzy-close-mobile-sidebar", closeMobile);
+    };
   }, []);
 
   function toggleCollapsed() {
@@ -194,6 +207,7 @@ export function AdminSidebar({
           onClick={() => setMobileOpen(false)}
         />
         <aside
+          data-tour="sidebar"
           className={cn(
             "absolute inset-y-0 left-0 flex w-64 flex-col border-r border-[#e8e4dc] bg-[#f5f2ec] shadow-xl transition-transform duration-300",
             mobileOpen ? "translate-x-0" : "-translate-x-full",

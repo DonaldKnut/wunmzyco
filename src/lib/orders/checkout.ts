@@ -36,12 +36,39 @@ export type CheckoutAddressInput = {
   deliveryNotes?: string;
 };
 
+export type CheckoutPaymentMethod = "paystack" | "whatsapp";
+
 export type CheckoutInput = {
   items: CheckoutItemInput[];
   address: CheckoutAddressInput;
   userId?: string | null;
   couponCode?: string | null;
+  paymentMethod?: CheckoutPaymentMethod;
 };
+
+function normalizeWhatsAppDigits(raw: string): string {
+  const digits = raw.replace(/\D/g, "");
+  if (digits.startsWith("0") && digits.length === 11) {
+    return `234${digits.slice(1)}`;
+  }
+  return digits;
+}
+
+function buildWhatsAppOrderMessage(input: {
+  orderNumber: string;
+  customerName: string;
+  totalFormatted: string;
+  phone: string;
+  trackingUrl: string;
+}): string {
+  return [
+    `Hi Wunmzy Co — I'd like to pay for order *${input.orderNumber}*.`,
+    `Name: ${input.customerName}`,
+    `Phone: ${input.phone}`,
+    `Total: ${input.totalFormatted}`,
+    `Track: ${input.trackingUrl}`,
+  ].join("\n");
+}
 
 function unitPrice(product: {
   priceKobo: number;
@@ -215,9 +242,19 @@ async function priceItems(items: CheckoutItemInput[]) {
 }
 
 export async function createPendingOrderAndInitializePayment(input: CheckoutInput) {
+  const paymentMethod: CheckoutPaymentMethod = input.paymentMethod ?? "paystack";
   const settings = await prisma.storeSettings.findUnique({ where: { id: "default" } });
   const reservationMinutes = settings?.reservationMinutes ?? 30;
   const defaultWeight = settings?.defaultWeightGrams ?? 400;
+
+  if (paymentMethod === "whatsapp") {
+    const wa = settings?.whatsappNumber?.trim();
+    if (!wa) {
+      throw new Error(
+        "WhatsApp checkout is not configured. Set a WhatsApp number in Admin → Settings.",
+      );
+    }
+  }
 
   const zone = await prisma.deliveryZone.findUnique({ where: { id: input.address.deliveryZoneId } });
   if (!zone || !zone.isActive) throw new Error("Invalid delivery zone");
@@ -248,6 +285,8 @@ export async function createPendingOrderAndInitializePayment(input: CheckoutInpu
   const trackingTokenHash = hashTrackingToken(trackingToken);
   const paymentReference = generatePaymentReference(orderNumber);
   const expiresAt = new Date(Date.now() + reservationMinutes * 60 * 1000);
+  const channel = paymentMethod === "whatsapp" ? "WHATSAPP" : "WEB";
+  const trackingUrl = absoluteUrl(`/track-order?token=${trackingToken}`);
 
   const order = await prisma.$transaction(async (tx) => {
     const quote = await tx.deliveryQuote.create({
@@ -274,6 +313,7 @@ export async function createPendingOrderAndInitializePayment(input: CheckoutInpu
         guestPhone: input.address.phone,
         customerName: input.address.fullName,
         status: "PENDING_PAYMENT",
+        channel,
         subtotalKobo: priced.subtotalKobo,
         discountKobo,
         deliveryFeeKobo: delivery.totalFeeKobo,
@@ -310,7 +350,10 @@ export async function createPendingOrderAndInitializePayment(input: CheckoutInpu
         statusHistory: {
           create: {
             toStatus: "PENDING_PAYMENT",
-            note: "Order created, awaiting payment",
+            note:
+              paymentMethod === "whatsapp"
+                ? "Order placed via WhatsApp — awaiting payment confirmation"
+                : "Order created, awaiting payment",
             isCustomerVisible: true,
           },
         },
@@ -350,54 +393,86 @@ export async function createPendingOrderAndInitializePayment(input: CheckoutInpu
     return created;
   });
 
-  let init;
-  try {
-    const provider = getPaymentProvider();
-    init = await provider.initialize({
-      email: input.address.email,
-      amountKobo: totalKobo,
-      reference: paymentReference,
-      callbackUrl: absoluteUrl(`/api/payments/verify?reference=${paymentReference}`),
-      metadata: {
+  let authorizationUrl: string | null = null;
+  let paymentReferenceOut = paymentReference;
+  let whatsappUrl: string | null = null;
+
+  if (paymentMethod === "whatsapp") {
+    const waDigits = normalizeWhatsAppDigits(settings!.whatsappNumber!);
+    const message = buildWhatsAppOrderMessage({
+      orderNumber: order.orderNumber,
+      customerName: input.address.fullName,
+      totalFormatted: formatNgn(totalKobo),
+      phone: input.address.phone,
+      trackingUrl,
+    });
+    whatsappUrl = `https://wa.me/${waDigits}?text=${encodeURIComponent(message)}`;
+    authorizationUrl = whatsappUrl;
+
+    await prisma.payment.create({
+      data: {
         orderId: order.id,
-        orderNumber: order.orderNumber,
+        provider: "whatsapp",
+        reference: paymentReference,
+        authorizationUrl: whatsappUrl,
+        amountKobo: totalKobo,
+        currency: "NGN",
+        status: "PENDING",
+        metadataJson: { channel: "whatsapp", whatsappUrl },
       },
     });
-  } catch (error) {
-    // Preserve the pending order; release stock so inventory is not stuck.
-    await prisma.$transaction(async (tx) => {
-      const { releaseReservationsForOrder } = await import("@/lib/inventory/reservations");
-      await releaseReservationsForOrder(tx, order.id);
-      await tx.order.update({
-        where: { id: order.id },
-        data: { status: "CANCELLED", cancelledAt: new Date() },
-      });
-      await tx.orderStatusHistory.create({
-        data: {
+  } else {
+    let init;
+    try {
+      const provider = getPaymentProvider();
+      init = await provider.initialize({
+        email: input.address.email,
+        amountKobo: totalKobo,
+        reference: paymentReference,
+        callbackUrl: absoluteUrl(`/api/payments/verify?reference=${paymentReference}`),
+        metadata: {
           orderId: order.id,
-          fromStatus: "PENDING_PAYMENT",
-          toStatus: "CANCELLED",
-          note: "Payment provider configuration error — order cancelled",
-          isCustomerVisible: false,
+          orderNumber: order.orderNumber,
         },
       });
-    });
-    throw error;
-  }
+    } catch (error) {
+      await prisma.$transaction(async (tx) => {
+        const { releaseReservationsForOrder } = await import("@/lib/inventory/reservations");
+        await releaseReservationsForOrder(tx, order.id);
+        await tx.order.update({
+          where: { id: order.id },
+          data: { status: "CANCELLED", cancelledAt: new Date() },
+        });
+        await tx.orderStatusHistory.create({
+          data: {
+            orderId: order.id,
+            fromStatus: "PENDING_PAYMENT",
+            toStatus: "CANCELLED",
+            note: "Payment provider configuration error — order cancelled",
+            isCustomerVisible: false,
+          },
+        });
+      });
+      throw error;
+    }
 
-  await prisma.payment.create({
-    data: {
-      orderId: order.id,
-      provider: init.provider,
-      reference: init.reference,
-      accessCode: init.accessCode,
-      authorizationUrl: init.authorizationUrl,
-      amountKobo: totalKobo,
-      currency: "NGN",
-      status: "PENDING",
-      metadataJson: (init.raw as object) ?? {},
-    },
-  });
+    paymentReferenceOut = init.reference;
+    authorizationUrl = init.authorizationUrl;
+
+    await prisma.payment.create({
+      data: {
+        orderId: order.id,
+        provider: init.provider,
+        reference: init.reference,
+        accessCode: init.accessCode,
+        authorizationUrl: init.authorizationUrl,
+        amountKobo: totalKobo,
+        currency: "NGN",
+        status: "PENDING",
+        metadataJson: (init.raw as object) ?? {},
+      },
+    });
+  }
 
   await sendEmail({
     to: input.address.email,
@@ -407,7 +482,7 @@ export async function createPendingOrderAndInitializePayment(input: CheckoutInpu
       customerName: input.address.fullName,
       orderNumber: order.orderNumber,
       totalFormatted: formatNgn(totalKobo),
-      trackingUrl: absoluteUrl(`/track-order?token=${trackingToken}`),
+      trackingUrl,
     }),
     metadata: { orderId: order.id },
   });
@@ -416,8 +491,10 @@ export async function createPendingOrderAndInitializePayment(input: CheckoutInpu
     orderId: order.id,
     orderNumber: order.orderNumber,
     trackingToken,
-    authorizationUrl: init.authorizationUrl,
-    paymentReference: init.reference,
+    authorizationUrl,
+    whatsappUrl,
+    paymentReference: paymentReferenceOut,
     totalKobo,
+    channel,
   };
 }

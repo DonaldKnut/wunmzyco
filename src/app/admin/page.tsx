@@ -2,7 +2,7 @@ import Link from "next/link";
 import { format } from "date-fns";
 import { requirePermission } from "@/lib/admin/auth";
 import { getDashboardMetrics } from "@/lib/admin/metrics";
-import { formatOrderStatus, formatPaymentStatus } from "@/lib/admin/labels";
+import { formatOrderChannel, formatOrderStatus, formatPaymentStatus } from "@/lib/admin/labels";
 import { formatNgn } from "@/lib/currency";
 import {
   AdminCard,
@@ -33,6 +33,17 @@ export default async function AdminOverviewPage({
       {params.error === "forbidden" ? (
         <AlertBanner variant="error">
           You do not have permission to view that section.
+        </AlertBanner>
+      ) : null}
+
+      {metrics.pendingWhatsAppOrders > 0 ? (
+        <AlertBanner variant="warning">
+          {metrics.pendingWhatsAppOrders} WhatsApp order
+          {metrics.pendingWhatsAppOrders === 1 ? "" : "s"} awaiting payment —{" "}
+          <Link href="/admin/orders" className="font-medium underline">
+            review in Orders
+          </Link>
+          .
         </AlertBanner>
       ) : null}
 
@@ -180,6 +191,7 @@ export default async function AdminOverviewPage({
                   <tr>
                     <Th>Order</Th>
                     <Th>Customer</Th>
+                    <Th>Channel</Th>
                     <Th>Status</Th>
                     <Th>Total</Th>
                     <Th>Date</Th>
@@ -198,7 +210,20 @@ export default async function AdminOverviewPage({
                       </Td>
                       <Td>{o.customerName}</Td>
                       <Td>
-                        <Badge tone="neutral">{formatOrderStatus(o.status)}</Badge>
+                        <Badge tone={o.channel === "WHATSAPP" ? "info" : "neutral"}>
+                          {formatOrderChannel(o.channel)}
+                        </Badge>
+                      </Td>
+                      <Td>
+                        <Badge
+                          tone={
+                            o.status === "PENDING_PAYMENT" && o.channel === "WHATSAPP"
+                              ? "warning"
+                              : "neutral"
+                          }
+                        >
+                          {formatOrderStatus(o.status)}
+                        </Badge>
                       </Td>
                       <Td className="tabular-nums">{formatNgn(o.totalKobo)}</Td>
                       <Td className="text-[#5c5a54]">

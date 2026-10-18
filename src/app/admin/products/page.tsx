@@ -24,7 +24,10 @@ export default async function AdminProductsPage() {
     prisma.product.findMany({
       orderBy: { updatedAt: "desc" },
       take: 200,
-      include: { categories: { select: { categoryId: true } } },
+      include: {
+        categories: { select: { categoryId: true } },
+        images: { orderBy: { sortOrder: "asc" } },
+      },
     }),
     prisma.category.findMany({
       where: { isActive: true },

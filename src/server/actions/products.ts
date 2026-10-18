@@ -11,6 +11,39 @@ import { revalidateStorefront } from "@/lib/admin/revalidate-storefront";
 import { actionRequirePermission } from "@/server/actions/helpers";
 import { actionError, actionOk, type ActionResult } from "@/server/actions/result";
 
+type ImageInput = {
+  url: string;
+  publicId?: string | null;
+  alt?: string;
+  isCover?: boolean;
+};
+
+function parseImagesJson(raw: FormDataEntryValue | null): ImageInput[] {
+  if (!raw || typeof raw !== "string" || !raw.trim()) return [];
+  try {
+    const parsed = JSON.parse(raw) as unknown;
+    if (!Array.isArray(parsed)) return [];
+    return parsed
+      .filter((item): item is ImageInput => {
+        return (
+          typeof item === "object" &&
+          item !== null &&
+          typeof (item as ImageInput).url === "string" &&
+          (item as ImageInput).url.length > 0
+        );
+      })
+      .slice(0, 12)
+      .map((item, index) => ({
+        url: item.url.trim(),
+        publicId: item.publicId ?? null,
+        alt: (typeof item.alt === "string" ? item.alt.trim() : "") || undefined,
+        isCover: Boolean(item.isCover) || index === 0,
+      }));
+  } catch {
+    return [];
+  }
+}
+
 function parseProductForm(formData: FormData) {
   const name = String(formData.get("name") ?? "").trim();
   const description = String(formData.get("description") ?? "").trim();
@@ -23,6 +56,7 @@ function parseProductForm(formData: FormData) {
   const status = String(formData.get("status") ?? "DRAFT") as ProductStatus;
   const isFeatured = formData.get("isFeatured") === "on";
   const categoryIds = formData.getAll("categoryIds").map(String);
+  const images = parseImagesJson(formData.get("imagesJson"));
 
   if (!name || !description || !sku) {
     throw new Error("Name, description, and SKU are required.");
@@ -38,6 +72,11 @@ function parseProductForm(formData: FormData) {
       ? nairaToKobo(Number(salePriceNairaRaw))
       : null;
 
+  const coverIndex = Math.max(
+    0,
+    images.findIndex((img) => img.isCover),
+  );
+
   return {
     name,
     description,
@@ -50,6 +89,13 @@ function parseProductForm(formData: FormData) {
     status,
     isFeatured,
     categoryIds,
+    images: images.map((img, index) => ({
+      url: img.url,
+      publicId: img.publicId ?? null,
+      alt: img.alt ?? null,
+      sortOrder: index,
+      isCover: index === (coverIndex >= 0 ? coverIndex : 0),
+    })),
   };
 }
 
@@ -73,6 +119,15 @@ export async function createProduct(formData: FormData): Promise<ActionResult<{ 
         publishedAt: data.status === "PUBLISHED" ? new Date() : null,
         categories: {
           create: data.categoryIds.map((categoryId) => ({ categoryId })),
+        },
+        images: {
+          create: data.images.map((img) => ({
+            url: img.url,
+            publicId: img.publicId,
+            alt: img.alt,
+            sortOrder: img.sortOrder,
+            isCover: img.isCover,
+          })),
         },
       },
     });
@@ -104,6 +159,7 @@ export async function updateProduct(
 
     await prisma.$transaction(async (tx) => {
       await tx.productCategory.deleteMany({ where: { productId } });
+      await tx.productImage.deleteMany({ where: { productId } });
       await tx.product.update({
         where: { id: productId },
         data: {
@@ -125,6 +181,15 @@ export async function updateProduct(
                 : undefined,
           categories: {
             create: data.categoryIds.map((categoryId) => ({ categoryId })),
+          },
+          images: {
+            create: data.images.map((img) => ({
+              url: img.url,
+              publicId: img.publicId,
+              alt: img.alt,
+              sortOrder: img.sortOrder,
+              isCover: img.isCover,
+            })),
           },
         },
       });

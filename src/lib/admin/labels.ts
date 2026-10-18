@@ -1,5 +1,6 @@
 import type {
   DeliveryStatus,
+  OrderChannel,
   OrderStatus,
   PaymentStatus,
   ProductStatus,
@@ -9,6 +10,11 @@ import type {
 
 export function formatOrderStatus(s: OrderStatus): string {
   return s.replace(/_/g, " ").toLowerCase().replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
+export function formatOrderChannel(c: OrderChannel): string {
+  if (c === "WHATSAPP") return "WhatsApp";
+  return "Web";
 }
 
 export function formatPaymentStatus(s: PaymentStatus): string {

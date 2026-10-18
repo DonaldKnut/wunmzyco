@@ -9,18 +9,40 @@ type Rect = { top: number; left: number; width: number; height: number };
 
 const PAD = 8;
 
+/** Prefer a visible target (open mobile drawer / expanded desktop sidebar). */
 function measure(selector?: string): Rect | null {
   if (!selector || typeof document === "undefined") return null;
-  const el = document.querySelector(selector);
-  if (!el) return null;
-  const r = el.getBoundingClientRect();
-  if (r.width === 0 && r.height === 0) return null;
-  return {
-    top: r.top - PAD,
-    left: r.left - PAD,
-    width: r.width + PAD * 2,
-    height: r.height + PAD * 2,
-  };
+  const nodes = Array.from(document.querySelectorAll(selector));
+  let best: Rect | null = null;
+  let bestScore = -1;
+
+  for (const el of nodes) {
+    const style = window.getComputedStyle(el);
+    if (style.display === "none" || style.visibility === "hidden" || style.opacity === "0") {
+      continue;
+    }
+    const r = el.getBoundingClientRect();
+    if (r.width < 2 || r.height < 2) continue;
+
+    const vw = window.innerWidth;
+    const vh = window.innerHeight;
+    const visibleW = Math.max(0, Math.min(r.right, vw) - Math.max(r.left, 0));
+    const visibleH = Math.max(0, Math.min(r.bottom, vh) - Math.max(r.top, 0));
+    const score = visibleW * visibleH;
+    if (score <= 0 && r.left < -20) continue; // fully off-canvas drawer
+
+    if (score > bestScore) {
+      bestScore = score;
+      best = {
+        top: r.top - PAD,
+        left: r.left - PAD,
+        width: r.width + PAD * 2,
+        height: r.height + PAD * 2,
+      };
+    }
+  }
+
+  return best;
 }
 
 export function AdminTourOverlay() {
@@ -38,42 +60,57 @@ export function AdminTourOverlay() {
   React.useEffect(() => {
     if (!active || !step) return;
 
+    function prepareSidebar() {
+      try {
+        if (localStorage.getItem("wunmzy-admin-sidebar") === "1") {
+          localStorage.setItem("wunmzy-admin-sidebar", "0");
+        }
+      } catch {
+        /* ignore */
+      }
+      window.dispatchEvent(new Event("wunmzy-expand-sidebar"));
+      if (step.needsSidebar && window.matchMedia("(max-width: 1023px)").matches) {
+        window.dispatchEvent(new Event("wunmzy-open-mobile-sidebar"));
+      }
+      if (!step.needsSidebar && window.matchMedia("(max-width: 1023px)").matches) {
+        window.dispatchEvent(new Event("wunmzy-close-mobile-sidebar"));
+      }
+    }
+
     function update() {
       if (prefersCenter) {
         setRect(null);
         return;
       }
-      try {
-        if (localStorage.getItem("wunmzy-admin-sidebar") === "1") {
-          localStorage.setItem("wunmzy-admin-sidebar", "0");
-          window.dispatchEvent(new Event("wunmzy-expand-sidebar"));
-        }
-      } catch {
-        /* ignore */
-      }
+      prepareSidebar();
       const nextRect = measure(step.selector);
       setRect(nextRect);
       if (nextRect && step.selector) {
-        document.querySelector(step.selector)?.scrollIntoView({
-          block: "nearest",
-          behavior: "smooth",
-        });
+        const el = document.querySelector(step.selector);
+        el?.scrollIntoView({ block: "nearest", behavior: "smooth" });
       }
     }
 
     update();
-    const t = window.setTimeout(update, 120);
+    const t1 = window.setTimeout(update, 50);
+    const t2 = window.setTimeout(update, 280);
+    const t3 = window.setTimeout(update, 450);
     window.addEventListener("resize", update);
     window.addEventListener("scroll", update, true);
     return () => {
-      window.clearTimeout(t);
+      window.clearTimeout(t1);
+      window.clearTimeout(t2);
+      window.clearTimeout(t3);
       window.removeEventListener("resize", update);
       window.removeEventListener("scroll", update, true);
     };
   }, [active, step, stepIndex, prefersCenter]);
 
   React.useEffect(() => {
-    if (!active) return;
+    if (!active) {
+      window.dispatchEvent(new Event("wunmzy-close-mobile-sidebar"));
+      return;
+    }
     function onKey(e: KeyboardEvent) {
       if (e.key === "Escape") skip();
       if (e.key === "ArrowRight" || e.key === "Enter") next();
@@ -91,7 +128,7 @@ export function AdminTourOverlay() {
 
   return createPortal(
     <div
-      className="fixed inset-0 z-[100]"
+      className="fixed inset-0 z-[110]"
       role="dialog"
       aria-modal="true"
       aria-labelledby="admin-tour-title"
@@ -129,7 +166,7 @@ export function AdminTourOverlay() {
 
       <div
         className={cn(
-          "absolute z-[101] w-[min(100vw-2rem,22rem)] animate-in fade-in-0 zoom-in-95 rounded-2xl border border-[#e8e4dc] bg-[#faf8f5] p-5 shadow-2xl duration-200",
+          "absolute z-[111] w-[min(100vw-2rem,22rem)] animate-in fade-in-0 zoom-in-95 rounded-2xl border border-[#e8e4dc] bg-[#faf8f5] p-5 shadow-2xl duration-200",
           showCenteredCard && "left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2",
         )}
         style={showCenteredCard ? undefined : tooltipStyle}
@@ -202,28 +239,35 @@ function tooltipPosition(
   const vw = typeof window !== "undefined" ? window.innerWidth : 1200;
   const vh = typeof window !== "undefined" ? window.innerHeight : 800;
   const tipW = Math.min(vw - 32, 352);
+  const isMobile = vw < 1024;
 
   let top = rect.top;
   let left = rect.left;
 
-  switch (placement) {
-    case "right":
-      top = rect.top + rect.height / 2 - 80;
-      left = rect.left + rect.width + gap;
-      break;
-    case "left":
-      top = rect.top + rect.height / 2 - 80;
-      left = rect.left - tipW - gap;
-      break;
-    case "top":
-      top = rect.top - gap - 160;
-      left = rect.left + rect.width / 2 - tipW / 2;
-      break;
-    case "bottom":
-    default:
-      top = rect.top + rect.height + gap;
-      left = rect.left + rect.width / 2 - tipW / 2;
-      break;
+  // On mobile, drawer is left — place tooltip to the right of drawer or below target
+  if (isMobile && (placement === "right" || placement === "left")) {
+    top = Math.min(rect.top + rect.height + gap, vh - 240);
+    left = Math.max(16, Math.min(rect.left, vw - tipW - 16));
+  } else {
+    switch (placement) {
+      case "right":
+        top = rect.top + rect.height / 2 - 80;
+        left = rect.left + rect.width + gap;
+        break;
+      case "left":
+        top = rect.top + rect.height / 2 - 80;
+        left = rect.left - tipW - gap;
+        break;
+      case "top":
+        top = rect.top - gap - 160;
+        left = rect.left + rect.width / 2 - tipW / 2;
+        break;
+      case "bottom":
+      default:
+        top = rect.top + rect.height + gap;
+        left = rect.left + rect.width / 2 - tipW / 2;
+        break;
+    }
   }
 
   top = Math.max(16, Math.min(top, vh - 220));

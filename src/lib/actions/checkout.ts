@@ -2,7 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { getSessionUser } from "@/lib/auth/session";
-import { getCartLines } from "@/lib/cart";
+import { clearCart, getCartLines } from "@/lib/cart";
 import { createPendingOrderAndInitializePayment } from "@/lib/orders/checkout";
 import { checkoutFormSchema } from "@/lib/schemas/checkout";
 
@@ -28,6 +28,7 @@ export async function submitCheckout(
     deliveryZoneId: formData.get("deliveryZoneId"),
     deliveryNotes: formData.get("deliveryNotes") || "",
     couponCode: formData.get("couponCode") || "",
+    paymentMethod: formData.get("paymentMethod") || "paystack",
   });
 
   if (!parsed.success) {
@@ -37,7 +38,7 @@ export async function submitCheckout(
     };
   }
 
-  const { couponCode, ...address } = parsed.data;
+  const { couponCode, paymentMethod, ...address } = parsed.data;
   const user = await getSessionUser();
 
   try {
@@ -54,13 +55,20 @@ export async function submitCheckout(
       },
       userId: user?.id ?? null,
       couponCode: couponCode?.trim() || null,
+      paymentMethod,
     });
+
+    await clearCart();
 
     if (result.authorizationUrl) {
       redirect(result.authorizationUrl);
     }
     redirect(`/checkout/success?order=${encodeURIComponent(result.orderNumber)}`);
   } catch (err) {
+    // Next.js redirect() throws; rethrow so navigation still happens
+    if (err && typeof err === "object" && "digest" in err) {
+      throw err;
+    }
     const message = err instanceof Error ? err.message : "Checkout failed";
     return { ok: false, message };
   }

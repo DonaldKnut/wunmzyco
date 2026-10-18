@@ -4,6 +4,7 @@ import type { DeliveryStatus, OrderStatus } from "@prisma/client";
 import { requirePermission } from "@/lib/admin/auth";
 import {
   formatDeliveryStatus,
+  formatOrderChannel,
   formatOrderStatus,
 } from "@/lib/admin/labels";
 import { canTransitionDelivery, canTransitionOrder } from "@/lib/orders/transitions";
@@ -69,12 +70,22 @@ export default async function AdminOrderDetailPage({
 
       <div className="mb-6 flex flex-wrap gap-2">
         <Badge tone="info">{formatOrderStatus(order.status)}</Badge>
+        <Badge tone={order.channel === "WHATSAPP" ? "warning" : "neutral"}>
+          {formatOrderChannel(order.channel)}
+        </Badge>
         <Badge tone="neutral">{formatDeliveryStatus(order.deliveryStatus)}</Badge>
         <span className="text-sm text-[#5c5a54]">
           Total {formatNgn(order.totalKobo)} · Placed{" "}
           {format(order.createdAt, "d MMM yyyy, HH:mm")}
         </span>
       </div>
+
+      {order.channel === "WHATSAPP" && order.status === "PENDING_PAYMENT" ? (
+        <p className="mb-6 rounded-md border border-[#e8d4a8] bg-[#faf5ea] px-4 py-3 text-sm text-[#6b4f1d]">
+          Customer chose WhatsApp checkout. Confirm payment with them, then set status to{" "}
+          <strong>Paid</strong>.
+        </p>
+      ) : null}
 
       {canWrite ? (
         <div className="mb-6 grid gap-4 lg:grid-cols-2">

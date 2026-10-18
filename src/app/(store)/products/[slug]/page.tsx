@@ -2,8 +2,10 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
 import { AddToCartForm } from "@/components/storefront/add-to-cart-form";
-import { ProductImagePlaceholder } from "@/components/storefront/product-image-placeholder";
+import { ProductGallery } from "@/components/storefront/product-gallery";
 import { formatNgn } from "@/lib/currency";
+import { getOrCreateCartId } from "@/lib/cart";
+import { prisma } from "@/lib/db";
 import { effectiveUnitPrice, getProductBySlug } from "@/lib/store/products";
 
 export async function generateMetadata({ params }: PageProps<"/products/[slug]">) {
@@ -21,46 +23,37 @@ export default async function ProductPage({ params }: PageProps<"/products/[slug
   const price = effectiveUnitPrice(product);
   const onSale =
     product.salePriceKobo != null && product.salePriceKobo < product.priceKobo;
-  const cover = product.images.find((i) => i.isCover) ?? product.images[0];
+
+  let initialCartQuantity = 0;
+  try {
+    const cartId = await getOrCreateCartId();
+    if (cartId) {
+      const item = await prisma.cartItem.findFirst({
+        where: {
+          cartId,
+          productId: product.id,
+          variantId: product.hasVariants ? product.variants[0]?.id ?? null : null,
+        },
+        select: { quantity: true },
+      });
+      initialCartQuantity = item?.quantity ?? 0;
+    }
+  } catch {
+    initialCartQuantity = 0;
+  }
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-12 sm:px-6">
       <div className="grid gap-12 lg:grid-cols-2">
-        <div className="space-y-4">
-          {cover?.url ? (
-            cover.url.startsWith("/") ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={cover.url}
-                alt={cover.alt ?? product.name}
-                className="aspect-[3/4] w-full object-cover"
-              />
-            ) : (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={cover.url}
-                alt={cover.alt ?? product.name}
-                className="aspect-[3/4] w-full object-cover"
-              />
-            )
-          ) : (
-            <ProductImagePlaceholder label="Image coming soon" />
-          )}
-          {product.images.length > 1 ? (
-            <div className="grid grid-cols-4 gap-2">
-              {product.images.slice(0, 4).map((img) => (
-                <div key={img.id} className="border border-border">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={img.url}
-                    alt={img.alt ?? ""}
-                    className="aspect-square w-full object-cover"
-                  />
-                </div>
-              ))}
-            </div>
-          ) : null}
-        </div>
+        <ProductGallery
+          images={product.images.map((img) => ({
+            id: img.id,
+            url: img.url,
+            alt: img.alt,
+            isCover: img.isCover,
+          }))}
+          productName={product.name}
+        />
         <div className="space-y-6">
           <div className="flex flex-wrap gap-2">
             {product.isOneOfOne ? <Badge variant="accent">One of one</Badge> : null}
@@ -103,6 +96,8 @@ export default async function ProductPage({ params }: PageProps<"/products/[slug
               salePriceKobo: v.salePriceKobo,
             }))}
             basePriceKobo={price}
+            initialCartQuantity={initialCartQuantity}
+            isOneOfOne={product.isOneOfOne}
           />
           {product.reviews.length > 0 ? (
             <section className="border-t border-border pt-8">

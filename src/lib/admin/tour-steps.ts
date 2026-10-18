@@ -5,6 +5,8 @@ export type TourStep = {
   title: string;
   body: string;
   placement?: "top" | "bottom" | "left" | "right" | "center";
+  /** Open the mobile nav drawer so sidebar steps are visible on small screens. */
+  needsSidebar?: boolean;
 };
 
 export const TOUR_STORAGE_KEY = "wunmzy-admin-tour-v1";
@@ -18,17 +20,19 @@ export const ADMIN_TOUR_STEPS: TourStep[] = [
   },
   {
     id: "sidebar",
-    selector: 'aside[data-tour="sidebar"]',
+    selector: '[data-tour="sidebar"]',
     title: "Navigation",
-    body: "Jump between every staff tool from this sidebar. Collapse it anytime to free up space on smaller screens.",
+    body: "Jump between every staff tool from this sidebar. On phones, open the menu (☰) anytime — we’ll open it for you during this tour.",
     placement: "right",
+    needsSidebar: true,
   },
   {
     id: "overview",
-    selector: 'aside[data-tour="sidebar"] [data-tour="nav-overview"]',
+    selector: '[data-tour="nav-overview"]',
     title: "Overview",
     body: "Your home base — live sales, order counts, low-stock alerts, and recent orders at a glance.",
     placement: "right",
+    needsSidebar: true,
   },
   {
     id: "metrics",
@@ -39,37 +43,42 @@ export const ADMIN_TOUR_STEPS: TourStep[] = [
   },
   {
     id: "products",
-    selector: 'aside[data-tour="sidebar"] [data-tour="nav-products"]',
+    selector: '[data-tour="nav-products"]',
     title: "Products",
-    body: "Add, edit, publish, and archive catalogue items. New products open in a modal — set status to Published to go live.",
+    body: "Add, edit, publish, and archive catalogue items. Upload photos (Cloudinary), set status to Published to go live.",
     placement: "right",
+    needsSidebar: true,
   },
   {
     id: "homepage",
-    selector: 'aside[data-tour="sidebar"] [data-tour="nav-homepage"]',
+    selector: '[data-tour="nav-homepage"]',
     title: "Homepage",
     body: "Edit hero copy, the announcement bar, and carousel slides — including uploaded images that appear on the storefront.",
     placement: "right",
+    needsSidebar: true,
   },
   {
     id: "orders",
-    selector: 'aside[data-tour="sidebar"] [data-tour="nav-orders"]',
+    selector: '[data-tour="nav-orders"]',
     title: "Orders",
-    body: "Fulfilment queue and history. Open any order to update status, leave support notes, or review payment details.",
+    body: "Paystack and WhatsApp orders land here. Open any order to update status, leave notes, or review payment.",
     placement: "right",
+    needsSidebar: true,
   },
   {
     id: "settings",
-    selector: 'aside[data-tour="sidebar"] [data-tour="nav-settings"]',
+    selector: '[data-tour="nav-settings"]',
     title: "Settings",
     body: "Store name, policies, contact details, and operational defaults. Homepage visuals live under Homepage.",
     placement: "right",
+    needsSidebar: true,
   },
   {
     id: "account",
-    selector: 'aside[data-tour="sidebar"] [data-tour="account"]',
+    selector: '[data-tour="account"]',
     title: "Your account",
-    body: "See who you’re signed in as and sign out securely when you’re done. Restart this tour anytime from the header.",
+    body: "See who you’re signed in as and sign out securely when you’re done. Restart this tour anytime from Take a tour.",
     placement: "right",
+    needsSidebar: true,
   },
 ];

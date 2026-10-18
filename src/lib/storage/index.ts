@@ -11,6 +11,8 @@ export type UploadedImage = {
   publicId: string;
 };
 
+export type UploadFolder = "products" | "homepage" | "misc";
+
 function assertImage(file: File) {
   if (!ALLOWED_TYPES.has(file.type)) {
     throw new Error("Only JPEG, PNG, WebP, and GIF images are allowed");
@@ -20,38 +22,44 @@ function assertImage(file: File) {
   }
 }
 
-async function uploadLocal(file: File): Promise<UploadedImage> {
+function cloudinaryFolder(folder: UploadFolder): string {
+  return `wunmzyco/${folder}`;
+}
+
+async function uploadLocal(file: File, folder: UploadFolder): Promise<UploadedImage> {
   assertImage(file);
   const ext = file.type.split("/")[1] ?? "jpg";
   const id = `${Date.now()}_${randomBytes(6).toString("hex")}`;
   const filename = `${id}.${ext}`;
-  const dir = path.join(process.cwd(), "public", "uploads");
+  const dir = path.join(process.cwd(), "public", "uploads", folder);
   await mkdir(dir, { recursive: true });
   const buffer = Buffer.from(await file.arrayBuffer());
   await writeFile(path.join(dir, filename), buffer);
   return {
-    url: `/uploads/${filename}`,
+    url: `/uploads/${folder}/${filename}`,
     publicId: id,
   };
 }
 
-async function uploadCloudinary(file: File): Promise<UploadedImage> {
+async function uploadCloudinary(file: File, folder: UploadFolder): Promise<UploadedImage> {
   assertImage(file);
   const env = getEnv();
   if (!env.CLOUDINARY_CLOUD_NAME || !env.CLOUDINARY_API_KEY || !env.CLOUDINARY_API_SECRET) {
-    throw new Error("Cloudinary is not fully configured");
+    throw new Error(
+      "Cloudinary is not fully configured. Set CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, and CLOUDINARY_API_SECRET.",
+    );
   }
 
   const timestamp = Math.floor(Date.now() / 1000);
-  const folder = "wunmzyco/products";
-  const toSign = `folder=${folder}&timestamp=${timestamp}${env.CLOUDINARY_API_SECRET}`;
+  const cFolder = cloudinaryFolder(folder);
+  const toSign = `folder=${cFolder}&timestamp=${timestamp}${env.CLOUDINARY_API_SECRET}`;
   const signature = createHash("sha1").update(toSign).digest("hex");
 
   const form = new FormData();
   form.append("file", file);
   form.append("api_key", env.CLOUDINARY_API_KEY);
   form.append("timestamp", String(timestamp));
-  form.append("folder", folder);
+  form.append("folder", cFolder);
   form.append("signature", signature);
 
   const res = await fetch(
@@ -68,10 +76,18 @@ async function uploadCloudinary(file: File): Promise<UploadedImage> {
   return { url: data.secure_url, publicId: data.public_id };
 }
 
-export async function uploadProductImage(file: File): Promise<UploadedImage> {
+export async function uploadImage(
+  file: File,
+  folder: UploadFolder = "products",
+): Promise<UploadedImage> {
   const env = getEnv();
   if (env.STORAGE_PROVIDER === "cloudinary") {
-    return uploadCloudinary(file);
+    return uploadCloudinary(file, folder);
   }
-  return uploadLocal(file);
+  return uploadLocal(file, folder);
+}
+
+/** @deprecated Prefer uploadImage(file, folder) */
+export async function uploadProductImage(file: File): Promise<UploadedImage> {
+  return uploadImage(file, "products");
 }

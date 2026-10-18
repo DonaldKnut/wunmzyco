@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import type { Category, Product } from "@prisma/client";
+import type { Category, Product, ProductImage } from "@prisma/client";
 import { Pencil, Plus } from "lucide-react";
 import {
   Dialog,
@@ -16,7 +16,10 @@ import { ProductIllustration } from "@/components/admin/illustrations";
 import { Button } from "@/components/admin/ui";
 import { cn } from "@/lib/utils";
 
-type ProductWithCats = Product & { categories: { categoryId: string }[] };
+type ProductWithCats = Product & {
+  categories: { categoryId: string }[];
+  images?: ProductImage[];
+};
 
 export function ProductFormModal({
   categories,

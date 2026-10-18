@@ -54,6 +54,7 @@ export function SlideFormModal({
     try {
       const body = new FormData();
       body.append("file", file);
+      body.append("folder", "homepage");
       const res = await fetch("/api/uploads", { method: "POST", body });
       const json = (await res.json()) as { ok?: boolean; data?: { url: string }; error?: string };
       if (!res.ok || !json.data?.url) {

@@ -38,4 +38,5 @@ export const trackOrderSchema = z.object({
 
 export const checkoutFormSchema = checkoutAddressSchema.extend({
   couponCode: z.string().trim().max(40).optional().or(z.literal("")),
+  paymentMethod: z.enum(["paystack", "whatsapp"]).default("paystack"),
 });

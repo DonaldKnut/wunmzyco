@@ -1,13 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import Image from "next/image";
 import { useState, useTransition } from "react";
 import { ShoppingBag, Check } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { formatNgn } from "@/lib/currency";
 import { effectiveUnitPrice, type ProductListItem } from "@/lib/store/products";
-import { ProductImagePlaceholder } from "@/components/storefront/product-image-placeholder";
+import { ProductImageZoom } from "@/components/storefront/product-image-zoom";
 import { useStorefrontUi } from "@/components/providers/storefront-ui-provider";
 import { cn } from "@/lib/utils";
 
@@ -49,27 +48,13 @@ export function ProductCard({ product, className }: ProductCardProps) {
     <article className={cn("group flex flex-col", className)}>
       <div className="relative overflow-hidden">
         <Link href={`/products/${product.slug}`} className="relative block">
-          {product.coverImage?.url ? (
-            product.coverImage.url.startsWith("/") ? (
-              <Image
-                src={product.coverImage.url}
-                alt={product.coverImage.alt ?? product.name}
-                width={600}
-                height={800}
-                className="aspect-[3/4] w-full object-cover transition-transform duration-700 ease-out group-hover:scale-105"
-              />
-            ) : (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={product.coverImage.url}
-                alt={product.coverImage.alt ?? product.name}
-                className="aspect-[3/4] w-full object-cover transition-transform duration-700 ease-out group-hover:scale-105"
-              />
-            )
-          ) : (
-            <ProductImagePlaceholder className="transition-transform duration-700 group-hover:scale-105" />
-          )}
-          <div className="absolute inset-0 bg-gradient-to-t from-black/25 via-transparent to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
+          <ProductImageZoom
+            src={product.coverImage?.url}
+            alt={product.coverImage?.alt ?? product.name}
+            compact
+            className="transition-transform duration-700 ease-out"
+          />
+          <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/25 via-transparent to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
         </Link>
 
         <div className="absolute left-3 top-3 flex flex-col gap-1">

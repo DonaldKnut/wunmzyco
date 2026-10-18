@@ -2,7 +2,7 @@
 
 import { useActionState, useEffect, useState, type FormEvent } from "react";
 import { toast } from "sonner";
-import { MapPin } from "lucide-react";
+import { MapPin, MessageCircle, CreditCard } from "lucide-react";
 import { submitCheckout, type CheckoutState } from "@/lib/actions/checkout";
 import { checkoutFormSchema } from "@/lib/schemas/checkout";
 import { validateFormData } from "@/lib/forms/client";
@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { cn } from "@/lib/utils";
 
 const initial: CheckoutState = { ok: false, message: "" };
 
@@ -20,6 +21,7 @@ type CheckoutFormProps = {
   defaultEmail?: string;
   defaultName?: string;
   defaultPhone?: string;
+  whatsappEnabled?: boolean;
 };
 
 function FieldError({ message }: { message?: string }) {
@@ -31,9 +33,16 @@ function FieldError({ message }: { message?: string }) {
   );
 }
 
-export function CheckoutForm({ zones, defaultEmail, defaultName, defaultPhone }: CheckoutFormProps) {
+export function CheckoutForm({
+  zones,
+  defaultEmail,
+  defaultName,
+  defaultPhone,
+  whatsappEnabled = false,
+}: CheckoutFormProps) {
   const [state, action, pending] = useActionState(submitCheckout, initial);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [paymentMethod, setPaymentMethod] = useState<"paystack" | "whatsapp">("paystack");
 
   useEffect(() => {
     if (!state.message) return;
@@ -146,12 +155,57 @@ export function CheckoutForm({ zones, defaultEmail, defaultName, defaultPhone }:
       </div>
       <div className="space-y-4 lg:sticky lg:top-24 lg:self-start">
         <h2 className="font-display text-2xl">Payment</h2>
+        <input type="hidden" name="paymentMethod" value={paymentMethod} />
+        <div className="grid gap-2">
+          <button
+            type="button"
+            onClick={() => setPaymentMethod("paystack")}
+            className={cn(
+              "flex items-start gap-3 border px-4 py-3 text-left transition",
+              paymentMethod === "paystack"
+                ? "border-foreground bg-muted/40"
+                : "border-border hover:border-foreground/40",
+            )}
+          >
+            <CreditCard className="mt-0.5 h-4 w-4 shrink-0" />
+            <span>
+              <span className="block text-sm font-medium">Pay with Paystack</span>
+              <span className="mt-0.5 block text-xs text-muted-foreground">
+                Card, bank transfer, or USSD — secure redirect.
+              </span>
+            </span>
+          </button>
+          {whatsappEnabled ? (
+            <button
+              type="button"
+              onClick={() => setPaymentMethod("whatsapp")}
+              className={cn(
+                "flex items-start gap-3 border px-4 py-3 text-left transition",
+                paymentMethod === "whatsapp"
+                  ? "border-foreground bg-muted/40"
+                  : "border-border hover:border-foreground/40",
+              )}
+            >
+              <MessageCircle className="mt-0.5 h-4 w-4 shrink-0" />
+              <span>
+                <span className="block text-sm font-medium">Pay via WhatsApp</span>
+                <span className="mt-0.5 block text-xs text-muted-foreground">
+                  Places your order in our admin queue, then opens WhatsApp to arrange payment.
+                </span>
+              </span>
+            </button>
+          ) : null}
+        </div>
         <p className="text-sm text-muted-foreground">
-          You&apos;ll be redirected to complete payment securely. Totals include delivery based on
-          your zone and cart weight.
+          Totals include delivery based on your zone and cart weight. Orders appear in the admin
+          dashboard immediately.
         </p>
         <Button type="submit" size="lg" className="w-full" disabled={pending || zones.length === 0}>
-          {pending ? "Processing…" : "Continue to payment"}
+          {pending
+            ? "Processing…"
+            : paymentMethod === "whatsapp"
+              ? "Place order & open WhatsApp"
+              : "Continue to Paystack"}
         </Button>
       </div>
     </form>

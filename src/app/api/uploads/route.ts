@@ -1,7 +1,9 @@
 import { jsonError, jsonOk } from "@/lib/api/http";
 import { requireStaff } from "@/lib/auth/session";
 import { hasPermission } from "@/lib/permissions";
-import { uploadProductImage } from "@/lib/storage";
+import { uploadImage, type UploadFolder } from "@/lib/storage";
+
+const FOLDERS = new Set<UploadFolder>(["products", "homepage", "misc"]);
 
 export async function POST(request: Request) {
   let staff;
@@ -30,8 +32,11 @@ export async function POST(request: Request) {
     return jsonError("Missing file field", 400);
   }
 
+  const folderRaw = String(form.get("folder") ?? "products");
+  const folder = (FOLDERS.has(folderRaw as UploadFolder) ? folderRaw : "products") as UploadFolder;
+
   try {
-    const uploaded = await uploadProductImage(file);
+    const uploaded = await uploadImage(file, folder);
     return jsonOk(uploaded, { status: 201 });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Upload failed";
