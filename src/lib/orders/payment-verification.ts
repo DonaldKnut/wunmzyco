@@ -10,6 +10,10 @@ import { logger } from "@/lib/logger";
  * Idempotent payment verification.
  * Only marks an order paid when the provider confirms success,
  * currency is NGN, and amount matches the order total.
+ *
+ * Concurrent callback + webhook are safe: status transitions use
+ * atomic `updateMany` claims (`PENDING` → terminal) so only one
+ * worker fulfils stock / emails.
  */
 export async function verifyAndApplyPayment(reference: string, options?: {
   providerEventId?: string;
@@ -79,6 +83,9 @@ export async function verifyAndApplyPayment(reference: string, options?: {
   }
 
   const result = await prisma.$transaction(async (tx) => {
+    // Row lock so concurrent webhook + callback serialize
+    await tx.$executeRaw`SELECT 1 FROM "Payment" WHERE id = ${payment.id} FOR UPDATE`;
+
     const locked = await tx.payment.findUnique({
       where: { id: payment.id },
       include: { order: true },
@@ -90,17 +97,22 @@ export async function verifyAndApplyPayment(reference: string, options?: {
     }
 
     if (options?.providerEventId) {
-      await tx.paymentEvent.create({
-        data: {
-          paymentId: locked.id,
-          providerEventId: options.providerEventId,
-          eventType: options.eventType ?? "verify",
-          payloadJson: (options.payload as object) ?? {},
-          signatureValid: options.signatureValid ?? true,
-          processed: true,
-          processedAt: new Date(),
-        },
-      });
+      try {
+        await tx.paymentEvent.create({
+          data: {
+            paymentId: locked.id,
+            providerEventId: options.providerEventId,
+            eventType: options.eventType ?? "verify",
+            payloadJson: (options.payload as object) ?? {},
+            signatureValid: options.signatureValid ?? true,
+            processed: true,
+            processedAt: new Date(),
+          },
+        });
+      } catch {
+        // Unique providerEventId — another worker already recorded this event
+        return { alreadyProcessed: true as const, status: "successful" as const, orderId: locked.orderId };
+      }
     } else {
       await tx.paymentEvent.create({
         data: {
@@ -115,14 +127,19 @@ export async function verifyAndApplyPayment(reference: string, options?: {
     }
 
     if (verified.status === "successful") {
-      await tx.payment.update({
-        where: { id: locked.id },
+      // Atomic claim: only one worker can move PENDING → SUCCESSFUL
+      const claim = await tx.payment.updateMany({
+        where: { id: locked.id, status: "PENDING" },
         data: {
           status: "SUCCESSFUL",
           providerStatus: verified.providerStatus,
           paidAt: verified.paidAt ?? new Date(),
         },
       });
+
+      if (claim.count === 0) {
+        return { alreadyProcessed: true as const, status: "successful" as const, orderId: locked.orderId };
+      }
 
       if (locked.order.status === "PENDING_PAYMENT") {
         await tx.order.update({
@@ -151,14 +168,24 @@ export async function verifyAndApplyPayment(reference: string, options?: {
     }
 
     if (verified.status === "failed" || verified.status === "abandoned") {
-      await tx.payment.update({
-        where: { id: locked.id },
+      const nextStatus = verified.status === "abandoned" ? "ABANDONED" : "FAILED";
+      const claim = await tx.payment.updateMany({
+        where: { id: locked.id, status: "PENDING" },
         data: {
-          status: verified.status === "abandoned" ? "ABANDONED" : "FAILED",
+          status: nextStatus,
           providerStatus: verified.providerStatus,
           failedAt: new Date(),
         },
       });
+
+      if (claim.count === 0) {
+        return {
+          alreadyProcessed: true as const,
+          status: verified.status,
+          orderId: locked.orderId,
+        };
+      }
+
       if (locked.order.status === "PENDING_PAYMENT") {
         await releaseReservationsForOrder(tx, locked.orderId);
         await tx.order.update({
@@ -186,8 +213,6 @@ export async function verifyAndApplyPayment(reference: string, options?: {
   });
 
   if (result.status === "successful" && !result.alreadyProcessed) {
-    // Clear bag only after money is confirmed (cancel/abandon keeps items).
-    // Prefer cartId from payment metadata so webhooks (no cookies) still clear.
     const paid = await prisma.payment.findUnique({
       where: { reference },
       select: { metadataJson: true },
@@ -221,7 +246,6 @@ export async function verifyAndApplyPayment(reference: string, options?: {
     !result.alreadyProcessed &&
     result.orderId
   ) {
-    // Defensive restore — covers older flows that cleared the cart before Paystack.
     await restoreCartFromOrder(result.orderId);
   }
 

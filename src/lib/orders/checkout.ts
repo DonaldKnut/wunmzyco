@@ -258,6 +258,42 @@ export async function createPendingOrderAndInitializePayment(input: CheckoutInpu
     }
   }
 
+  // Idempotency: reuse an open Paystack session for the same cart (blocks double charge
+  // from double-submit / multi-tab within the reservation window).
+  if (paymentMethod === "paystack" && input.cartId) {
+    const since = new Date(Date.now() - reservationMinutes * 60 * 1000);
+    const open = await prisma.payment.findFirst({
+      where: {
+        status: "PENDING",
+        provider: { not: "whatsapp" },
+        createdAt: { gte: since },
+        authorizationUrl: { not: null },
+        order: { status: "PENDING_PAYMENT" },
+      },
+      orderBy: { createdAt: "desc" },
+      include: { order: { select: { id: true, orderNumber: true, totalKobo: true } } },
+    });
+    if (open?.authorizationUrl) {
+      const meta =
+        open.metadataJson && typeof open.metadataJson === "object"
+          ? (open.metadataJson as Record<string, unknown>)
+          : {};
+      if (meta.cartId === input.cartId) {
+        return {
+          orderId: open.order.id,
+          orderNumber: open.order.orderNumber,
+          trackingToken: "",
+          authorizationUrl: open.authorizationUrl,
+          whatsappUrl: null as string | null,
+          paymentReference: open.reference,
+          totalKobo: open.order.totalKobo,
+          channel: "WEB" as const,
+          reused: true as const,
+        };
+      }
+    }
+  }
+
   const zone = await prisma.deliveryZone.findUnique({ where: { id: input.address.deliveryZoneId } });
   if (!zone || !zone.isActive) throw new Error("Invalid delivery zone");
 

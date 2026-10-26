@@ -1,4 +1,4 @@
-import { jsonError, jsonOk } from "@/lib/api/http";
+import { jsonError, jsonOk, enforceRateLimit } from "@/lib/api/http";
 import { requireStaff } from "@/lib/auth/session";
 import { hasPermission } from "@/lib/permissions";
 import { uploadImage, type UploadFolder } from "@/lib/storage";
@@ -26,6 +26,9 @@ export async function POST(request: Request) {
   ) {
     return jsonError("Forbidden", 403);
   }
+
+  const limited = await enforceRateLimit(`uploads:${staff.id}`, 30, 60_000);
+  if (limited) return limited;
 
   let form: FormData;
   try {

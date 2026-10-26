@@ -17,15 +17,61 @@ export type UploadFolder =
   | "branding"
   | "misc";
 
-function assertImage(file: File) {
-  if (!ALLOWED_TYPES.has(file.type)) {
-    throw new Error("Only JPEG, PNG, WebP, and GIF images are allowed");
+/** Magic-byte sniffing — MIME from the browser alone is not trusted. */
+function sniffImageMime(bytes: Uint8Array): string | null {
+  if (bytes.length >= 3 && bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff) {
+    return "image/jpeg";
   }
+  if (
+    bytes.length >= 8 &&
+    bytes[0] === 0x89 &&
+    bytes[1] === 0x50 &&
+    bytes[2] === 0x4e &&
+    bytes[3] === 0x47
+  ) {
+    return "image/png";
+  }
+  if (
+    bytes.length >= 6 &&
+    bytes[0] === 0x47 &&
+    bytes[1] === 0x49 &&
+    bytes[2] === 0x46 &&
+    bytes[3] === 0x38
+  ) {
+    return "image/gif";
+  }
+  if (
+    bytes.length >= 12 &&
+    bytes[0] === 0x52 &&
+    bytes[1] === 0x49 &&
+    bytes[2] === 0x46 &&
+    bytes[3] === 0x46 &&
+    bytes[8] === 0x57 &&
+    bytes[9] === 0x45 &&
+    bytes[10] === 0x42 &&
+    bytes[11] === 0x50
+  ) {
+    return "image/webp";
+  }
+  return null;
+}
+
+async function assertImage(file: File) {
   if (file.size > MAX_BYTES) {
     throw new Error("Image must be 5MB or smaller");
   }
   if (file.size === 0) {
     throw new Error("Image file is empty");
+  }
+
+  const buffer = new Uint8Array(await file.slice(0, 16).arrayBuffer());
+  const sniffed = sniffImageMime(buffer);
+  if (!sniffed || !ALLOWED_TYPES.has(sniffed)) {
+    throw new Error("Only JPEG, PNG, WebP, and GIF images are allowed");
+  }
+  // Declared type may be empty/wrong — sniff wins; reject polyglot mismatch when declared
+  if (file.type && ALLOWED_TYPES.has(file.type) && file.type !== sniffed) {
+    throw new Error("File content does not match the declared image type");
   }
 }
 
@@ -48,12 +94,10 @@ function requireCloudinaryConfig() {
 
 /**
  * Every image uploaded anywhere on the site goes to Cloudinary.
- * There is intentionally no local-disk fallback: if Cloudinary is not
- * configured the upload fails loudly instead of silently writing to
- * `public/uploads/` (which is lost on redeploy and invisible to the CDN).
+ * There is intentionally no local-disk fallback.
  */
 async function uploadCloudinary(file: File, folder: UploadFolder): Promise<UploadedImage> {
-  assertImage(file);
+  await assertImage(file);
   const { cloudName, apiKey, apiSecret } = requireCloudinaryConfig();
 
   const timestamp = Math.floor(Date.now() / 1000);
@@ -89,6 +133,9 @@ async function uploadCloudinary(file: File, folder: UploadFolder): Promise<Uploa
   const data = (await res.json()) as { secure_url?: string; public_id?: string };
   if (!data.secure_url || !data.public_id) {
     throw new Error("Cloudinary upload failed: unexpected response");
+  }
+  if (!data.secure_url.startsWith("https://res.cloudinary.com/")) {
+    throw new Error("Cloudinary upload returned an unexpected URL host");
   }
   return { url: data.secure_url, publicId: data.public_id };
 }

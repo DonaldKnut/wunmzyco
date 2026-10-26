@@ -35,6 +35,17 @@ export async function loginAction(
     return initialFail(parsed.message, parsed.fieldErrors);
   }
 
+  // Brute-force guard (in-memory — use Redis at multi-instance scale)
+  const { rateLimit, clientKey } = await import("@/lib/rate-limit");
+  const { headers } = await import("next/headers");
+  const h = await headers();
+  const ip =
+    h.get("x-forwarded-for")?.split(",")[0]?.trim() ?? h.get("x-real-ip") ?? "unknown";
+  const limited = rateLimit(clientKey("auth:login-action", ip), 10, 60_000);
+  if (!limited.ok) {
+    return initialFail("Too many sign-in attempts. Try again in a minute.");
+  }
+
   let destination = "/admin";
 
   try {

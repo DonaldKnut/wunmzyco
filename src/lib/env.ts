@@ -7,7 +7,8 @@ const envSchema = z.object({
   AUTH_SECRET: z.string().min(32, "AUTH_SECRET must be at least 32 characters"),
   ADMIN_SETUP_TOKEN: z.string().optional(),
   CRON_SECRET: z.string().optional(),
-  PAYMENT_PROVIDER: z.enum(["paystack", "mock"]).default("mock"),
+  // Unset → mock in development, paystack in production (never silently mock in prod).
+  PAYMENT_PROVIDER: z.enum(["paystack", "mock"]).optional(),
   PAYSTACK_SECRET_KEY: z.string().optional(),
   NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY: z.string().optional(),
   PAYSTACK_WEBHOOK_SECRET: z.string().optional(),
@@ -57,17 +58,28 @@ export function getEnv(): AppEnv {
 
   const data = parsed.data;
 
-  // Do not throw here for mock payments — getEnv() is used by auth/session.
-  // Production mock checkout is blocked in the payments layer instead.
+  const paymentProvider: "paystack" | "mock" =
+    data.PAYMENT_PROVIDER ??
+    (data.NODE_ENV === "production" ? "paystack" : "mock");
 
-  if (data.PAYMENT_PROVIDER === "paystack") {
+  if (data.NODE_ENV === "production" && paymentProvider === "mock") {
+    throw new Error(
+      "PAYMENT_PROVIDER=mock is forbidden in production. On Vercel set PAYMENT_PROVIDER=paystack and PAYSTACK_SECRET_KEY (Production env).",
+    );
+  }
+
+  if (paymentProvider === "paystack") {
     if (!data.PAYSTACK_SECRET_KEY) {
-      throw new Error("PAYSTACK_SECRET_KEY is required when PAYMENT_PROVIDER=paystack");
+      throw new Error(
+        "PAYSTACK_SECRET_KEY is required when PAYMENT_PROVIDER=paystack. Add it in Vercel → Settings → Environment Variables (Production).",
+      );
     }
     if (data.PAYSTACK_SECRET_KEY.startsWith("pk_")) {
       throw new Error("PAYSTACK_SECRET_KEY must be a secret key (sk_), never a public key");
     }
   }
+
+  const resolved = { ...data, PAYMENT_PROVIDER: paymentProvider };
 
   if (
     !data.CLOUDINARY_CLOUD_NAME?.trim() ||
@@ -79,15 +91,17 @@ export function getEnv(): AppEnv {
     );
   }
 
-  cached = data;
-  return data;
+  cached = resolved;
+  return resolved;
 }
 
 export function getPublicEnv() {
+  const isProd = process.env.NODE_ENV === "production";
   return {
     siteUrl: process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000",
     paystackPublicKey: process.env.NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY ?? "",
-    paymentProvider: process.env.PAYMENT_PROVIDER ?? "mock",
+    paymentProvider:
+      process.env.PAYMENT_PROVIDER ?? (isProd ? "paystack" : "mock"),
     paystackMode: process.env.PAYSTACK_MODE ?? "test",
   };
 }

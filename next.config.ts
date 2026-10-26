@@ -38,6 +38,15 @@ const nextConfig: NextConfig = {
         source: "/admin/:path*",
         headers: [{ key: "X-Robots-Tag", value: "noindex, nofollow" }],
       },
+      {
+        source: "/:path(login|register|forgot-password|reset-password)",
+        headers: [
+          {
+            key: "Cache-Control",
+            value: "no-store, no-cache, must-revalidate, private",
+          },
+        ],
+      },
     ];
   },
 };
