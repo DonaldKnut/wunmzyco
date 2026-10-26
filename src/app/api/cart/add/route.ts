@@ -1,5 +1,6 @@
 import { jsonError, jsonOk } from "@/lib/api/http";
 import { addCartItem } from "@/lib/cart";
+import { zodErrorPayload } from "@/lib/forms/zod";
 import { cartAddSchema } from "@/lib/schemas/api";
 
 export async function POST(request: Request) {
@@ -12,7 +13,8 @@ export async function POST(request: Request) {
 
   const parsed = cartAddSchema.safeParse(body);
   if (!parsed.success) {
-    return jsonError("Validation failed", 422, { issues: parsed.error.issues });
+    const payload = zodErrorPayload(parsed.error);
+    return jsonError(payload.message, 422, payload);
   }
 
   try {

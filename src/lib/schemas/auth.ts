@@ -1,31 +1,42 @@
 import { z } from "zod";
 
 export const passwordSchema = z
-  .string()
-  .min(10, "Password must be at least 10 characters")
-  .max(128, "Password is too long")
-  .refine((v) => /[A-Z]/.test(v), "Include an uppercase letter")
-  .refine((v) => /[a-z]/.test(v), "Include a lowercase letter")
-  .refine((v) => /[0-9]/.test(v), "Include a number");
+  .string({ error: "Please enter a password." })
+  .min(10, "Your password needs at least 10 characters.")
+  .max(128, "That password is too long — please use fewer than 128 characters.")
+  .refine((v) => /[A-Z]/.test(v), "Add at least one capital letter (A–Z).")
+  .refine((v) => /[a-z]/.test(v), "Add at least one lowercase letter (a–z).")
+  .refine((v) => /[0-9]/.test(v), "Add at least one number (0–9).");
 
 export const loginFormSchema = z.object({
   email: z
-    .string()
+    .string({ error: "Please enter your email." })
     .trim()
-    .min(1, "Email is required")
-    .email("Enter a valid email")
-    .max(200, "Email is too long"),
-  password: z.string().min(1, "Password is required").max(128, "Password is too long"),
+    .min(1, "Please enter your email.")
+    .email("Please enter a valid email address (like name@example.com).")
+    .max(200, "That email looks too long — please check it."),
+  password: z
+    .string({ error: "Please enter your password." })
+    .min(1, "Please enter your password.")
+    .max(128, "That password is too long."),
   next: z.string().max(500).optional(),
 });
 
 export const registerFormSchema = z.object({
-  name: z.string().trim().min(2, "Name is too short").max(120, "Name is too long"),
-  email: z.string().trim().email("Enter a valid email").max(200, "Email is too long"),
+  name: z
+    .string({ error: "Please enter your name." })
+    .trim()
+    .min(2, "Please enter your full name.")
+    .max(120, "That name is too long."),
+  email: z
+    .string({ error: "Please enter your email." })
+    .trim()
+    .email("Please enter a valid email address (like name@example.com).")
+    .max(200, "That email looks too long — please check it."),
   phone: z
     .string()
     .trim()
-    .max(20)
+    .max(20, "That phone number is too long.")
     .optional()
     .or(z.literal(""))
     .transform((v) => (v ? v : undefined)),
@@ -34,20 +45,24 @@ export const registerFormSchema = z.object({
 
 export const forgotPasswordFormSchema = z.object({
   email: z
-    .string()
+    .string({ error: "Please enter your email." })
     .trim()
-    .min(1, "Email is required")
-    .email("Enter a valid email")
-    .max(200),
+    .min(1, "Please enter your email.")
+    .email("Please enter a valid email address (like name@example.com).")
+    .max(200, "That email looks too long — please check it."),
 });
 
 export const resetPasswordFormSchema = z
   .object({
-    token: z.string().min(20, "Reset link is invalid or expired"),
+    token: z
+      .string({ error: "This reset link is missing or broken." })
+      .min(20, "This reset link is invalid or has expired. Please request a new one."),
     password: passwordSchema,
-    confirmPassword: z.string().min(1, "Confirm your password"),
+    confirmPassword: z
+      .string({ error: "Please type your password again." })
+      .min(1, "Please type your password again to confirm."),
   })
   .refine((data) => data.password === data.confirmPassword, {
-    message: "Passwords do not match",
+    message: "Those passwords don’t match — please type the same password twice.",
     path: ["confirmPassword"],
   });

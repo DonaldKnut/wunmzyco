@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/db";
 import { jsonError, jsonOk, enforceRateLimit } from "@/lib/api/http";
+import { zodErrorPayload } from "@/lib/forms/zod";
 import { newsletterSchema } from "@/lib/schemas/api";
 
 export async function POST(request: Request) {
@@ -15,7 +16,8 @@ export async function POST(request: Request) {
 
   const parsed = newsletterSchema.safeParse(body);
   if (!parsed.success) {
-    return jsonError("Validation failed", 422, { issues: parsed.error.issues });
+    const payload = zodErrorPayload(parsed.error);
+    return jsonError(payload.message, 422, payload);
   }
 
   const email = parsed.data.email.toLowerCase();

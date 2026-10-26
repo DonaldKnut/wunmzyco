@@ -57,21 +57,19 @@ export function getEnv(): AppEnv {
   }
 
   const data = parsed.data;
+  const isProd = data.NODE_ENV === "production";
 
-  const paymentProvider: "paystack" | "mock" =
-    data.PAYMENT_PROVIDER ??
-    (data.NODE_ENV === "production" ? "paystack" : "mock");
-
-  if (data.NODE_ENV === "production" && paymentProvider === "mock") {
-    throw new Error(
-      "PAYMENT_PROVIDER=mock is forbidden in production. On Vercel set PAYMENT_PROVIDER=paystack and PAYSTACK_SECRET_KEY (Production env).",
-    );
+  // Production never uses mock — even if PAYMENT_PROVIDER=mock was left on the host.
+  let paymentProvider: "paystack" | "mock" =
+    data.PAYMENT_PROVIDER ?? (isProd ? "paystack" : "mock");
+  if (isProd) {
+    paymentProvider = "paystack";
   }
 
   if (paymentProvider === "paystack") {
-    if (!data.PAYSTACK_SECRET_KEY) {
+    if (!data.PAYSTACK_SECRET_KEY?.trim()) {
       throw new Error(
-        "PAYSTACK_SECRET_KEY is required when PAYMENT_PROVIDER=paystack. Add it in Vercel → Settings → Environment Variables (Production).",
+        "Paystack is required in production. In Vercel → Settings → Environment Variables (Production) set PAYMENT_PROVIDER=paystack, PAYSTACK_SECRET_KEY (sk_…), NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY (pk_…), then Redeploy.",
       );
     }
     if (data.PAYSTACK_SECRET_KEY.startsWith("pk_")) {
@@ -100,8 +98,10 @@ export function getPublicEnv() {
   return {
     siteUrl: process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000",
     paystackPublicKey: process.env.NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY ?? "",
-    paymentProvider:
-      process.env.PAYMENT_PROVIDER ?? (isProd ? "paystack" : "mock"),
+    // Client never sees mock in production builds.
+    paymentProvider: isProd
+      ? "paystack"
+      : (process.env.PAYMENT_PROVIDER ?? "mock"),
     paystackMode: process.env.PAYSTACK_MODE ?? "test",
   };
 }

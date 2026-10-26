@@ -4,7 +4,7 @@ import { loginFormSchema } from "@/lib/schemas/auth";
 import { verifyPassword } from "@/lib/auth/password";
 import { createSession } from "@/lib/auth/session";
 import { isStaffRole } from "@/lib/permissions";
-import { firstZodMessage, zodFieldErrors } from "@/lib/forms/zod";
+import { zodErrorPayload } from "@/lib/forms/zod";
 
 export async function POST(request: Request) {
   const limited = await enforceRateLimit("auth:login", 10, 60_000);
@@ -19,10 +19,8 @@ export async function POST(request: Request) {
 
   const parsed = loginFormSchema.safeParse(body);
   if (!parsed.success) {
-    return jsonError(firstZodMessage(parsed.error), 422, {
-      issues: parsed.error.issues,
-      fieldErrors: zodFieldErrors(parsed.error),
-    });
+    const payload = zodErrorPayload(parsed.error);
+    return jsonError(payload.message, 422, payload);
   }
 
   const email = parsed.data.email.toLowerCase();

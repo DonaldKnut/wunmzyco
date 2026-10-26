@@ -6,24 +6,67 @@ import { prisma } from "@/lib/db";
 import { writeAuditLog } from "@/lib/audit";
 import { revalidateStorefront } from "@/lib/admin/revalidate-storefront";
 import { actionRequirePermission } from "@/server/actions/helpers";
+import { firstZodMessage } from "@/lib/forms/zod";
 import { actionError, actionOk, type ActionResult } from "@/server/actions/result";
 
 const slideSchema = z.object({
-  id: z.string().cuid().optional(),
-  eyebrow: z.string().trim().max(80).optional().or(z.literal("")),
-  title: z.string().trim().min(2, "Title is required").max(120),
-  subtitle: z.string().trim().max(400).optional().or(z.literal("")),
-  ctaLabel: z.string().trim().min(1).max(40).default("Shop the edit"),
-  ctaHref: z
+  id: z.string().optional(),
+  eyebrow: z
     .string()
     .trim()
-    .min(1)
-    .max(200)
-    .refine((v) => v.startsWith("/") || v.startsWith("http"), "Use a relative path or URL"),
-  imageUrl: z.string().trim().max(500).optional().or(z.literal("")),
-  imageAlt: z.string().trim().max(120).optional().or(z.literal("")),
-  tone: z.string().trim().max(120).optional().or(z.literal("")),
-  sortOrder: z.coerce.number().int().min(0).max(999).default(0),
+    .max(80, "That eyebrow text is too long.")
+    .optional()
+    .or(z.literal("")),
+  title: z
+    .string({ error: "Please enter a slide title." })
+    .trim()
+    .min(2, "Please enter a slide title.")
+    .max(120, "That title is too long."),
+  subtitle: z
+    .string()
+    .trim()
+    .max(400, "That subtitle is too long.")
+    .optional()
+    .or(z.literal("")),
+  ctaLabel: z
+    .string()
+    .trim()
+    .min(1, "Please enter a button label.")
+    .max(40, "That button label is too long.")
+    .default("Shop the edit"),
+  ctaHref: z
+    .string({ error: "Please enter a button link." })
+    .trim()
+    .min(1, "Please enter a button link.")
+    .max(200, "That link is too long.")
+    .refine(
+      (v) => v.startsWith("/") || v.startsWith("http"),
+      "Use a site path (like /shop) or a full web link.",
+    ),
+  imageUrl: z
+    .string()
+    .trim()
+    .max(500, "That image link is too long.")
+    .optional()
+    .or(z.literal("")),
+  imageAlt: z
+    .string()
+    .trim()
+    .max(120, "That image description is too long.")
+    .optional()
+    .or(z.literal("")),
+  tone: z
+    .string()
+    .trim()
+    .max(120, "That tone value is too long.")
+    .optional()
+    .or(z.literal("")),
+  sortOrder: z.coerce
+    .number({ error: "Sort order must be a number." })
+    .int("Sort order must be a whole number.")
+    .min(0, "Sort order can’t be negative.")
+    .max(999, "Sort order is too high.")
+    .default(0),
   isActive: z.boolean().default(true),
 });
 
@@ -98,7 +141,7 @@ export async function upsertHomepageSlide(formData: FormData): Promise<ActionRes
     const user = await actionRequirePermission("settings:write");
     const parsed = parseSlideForm(formData);
     if (!parsed.success) {
-      return actionError(parsed.error.issues[0]?.message ?? "Invalid slide.");
+      return actionError(firstZodMessage(parsed.error, "Please check the slide details."));
     }
     const data = parsed.data;
 

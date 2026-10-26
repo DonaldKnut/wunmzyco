@@ -1,11 +1,8 @@
 "use server";
 
-import { z } from "zod";
 import { prisma } from "@/lib/db";
-
-const schema = z.object({
-  email: z.string().email("Enter a valid email"),
-});
+import { firstZodMessage } from "@/lib/forms/zod";
+import { newsletterSchema } from "@/lib/schemas/api";
 
 export type NewsletterState = { ok: boolean; message: string };
 
@@ -13,9 +10,9 @@ export async function subscribeNewsletter(
   _prev: NewsletterState,
   formData: FormData,
 ): Promise<NewsletterState> {
-  const parsed = schema.safeParse({ email: formData.get("email") });
+  const parsed = newsletterSchema.safeParse({ email: formData.get("email") });
   if (!parsed.success) {
-    return { ok: false, message: parsed.error.issues[0]?.message ?? "Invalid email" };
+    return { ok: false, message: firstZodMessage(parsed.error) };
   }
   try {
     await prisma.newsletterSubscriber.upsert({

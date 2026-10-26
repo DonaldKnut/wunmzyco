@@ -1,6 +1,7 @@
 import { jsonError, jsonOk, enforceRateLimit } from "@/lib/api/http";
 import { getSessionUser } from "@/lib/auth/session";
 import { createPendingOrderAndInitializePayment } from "@/lib/orders/checkout";
+import { zodErrorPayload } from "@/lib/forms/zod";
 import { paymentInitializeSchema } from "@/lib/schemas/api";
 import { cartToCheckoutItems, getOrCreateCart, getOrCreateCartId } from "@/lib/cart";
 
@@ -17,7 +18,8 @@ export async function POST(request: Request) {
 
   const parsed = paymentInitializeSchema.safeParse(body);
   if (!parsed.success) {
-    return jsonError("Validation failed", 422, { issues: parsed.error.issues });
+    const payload = zodErrorPayload(parsed.error);
+    return jsonError(payload.message, 422, payload);
   }
 
   const user = await getSessionUser();

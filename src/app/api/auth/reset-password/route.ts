@@ -6,7 +6,7 @@ import {
   consumePasswordResetToken,
   markPasswordResetUsed,
 } from "@/lib/auth/reset";
-import { firstZodMessage, zodFieldErrors } from "@/lib/forms/zod";
+import { zodErrorPayload } from "@/lib/forms/zod";
 import { isStaffRole } from "@/lib/permissions";
 
 export async function POST(request: Request) {
@@ -22,10 +22,8 @@ export async function POST(request: Request) {
 
   const parsed = resetPasswordSchema.safeParse(body);
   if (!parsed.success) {
-    return jsonError(firstZodMessage(parsed.error), 422, {
-      issues: parsed.error.issues,
-      fieldErrors: zodFieldErrors(parsed.error),
-    });
+    const payload = zodErrorPayload(parsed.error);
+    return jsonError(payload.message, 422, payload);
   }
 
   const consumed = await consumePasswordResetToken(parsed.data.token);

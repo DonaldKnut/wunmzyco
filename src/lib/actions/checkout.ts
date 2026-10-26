@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { getSessionUser } from "@/lib/auth/session";
 import { clearCart, getCartLines, getOrCreateCartId } from "@/lib/cart";
 import { createPendingOrderAndInitializePayment } from "@/lib/orders/checkout";
+import { firstZodMessage } from "@/lib/forms/zod";
 import { checkoutFormSchema } from "@/lib/schemas/checkout";
 
 export type CheckoutState = { ok: boolean; message: string };
@@ -34,7 +35,7 @@ export async function submitCheckout(
   if (!parsed.success) {
     return {
       ok: false,
-      message: parsed.error.issues[0]?.message ?? "Please complete all required fields.",
+      message: firstZodMessage(parsed.error, "Please complete all required fields."),
     };
   }
 

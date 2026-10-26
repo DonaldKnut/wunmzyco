@@ -1,4 +1,5 @@
 import { jsonError, jsonOk, enforceRateLimit } from "@/lib/api/http";
+import { zodErrorPayload } from "@/lib/forms/zod";
 import { contactSchema } from "@/lib/schemas/api";
 import { sendEmail } from "@/lib/email";
 import { prisma } from "@/lib/db";
@@ -16,7 +17,8 @@ export async function POST(request: Request) {
 
   const parsed = contactSchema.safeParse(body);
   if (!parsed.success) {
-    return jsonError("Validation failed", 422, { issues: parsed.error.issues });
+    const payload = zodErrorPayload(parsed.error);
+    return jsonError(payload.message, 422, payload);
   }
 
   const settings = await prisma.storeSettings.findUnique({ where: { id: "default" } });
