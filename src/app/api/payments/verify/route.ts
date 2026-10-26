@@ -19,6 +19,7 @@ export async function GET(request: Request) {
       );
     }
 
+    // abandoned / failed / pending → recovery page (resume or restore bag)
     return NextResponse.redirect(
       absoluteUrl(
         `/checkout/failed?reference=${encodeURIComponent(reference)}&status=${encodeURIComponent(result.status)}`,

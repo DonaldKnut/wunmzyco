@@ -4,6 +4,9 @@ import { requirePermission } from "@/lib/admin/auth";
 import { getDashboardMetrics } from "@/lib/admin/metrics";
 import { formatOrderChannel, formatOrderStatus, formatPaymentStatus } from "@/lib/admin/labels";
 import { formatNgn } from "@/lib/currency";
+import { prisma } from "@/lib/db";
+import { hasPermission } from "@/lib/permissions";
+import { ProductFormModal } from "@/components/admin/product-form-modal";
 import {
   AdminCard,
   AdminCardBody,
@@ -17,16 +20,31 @@ import {
   Td,
   Th,
 } from "@/components/admin/ui";
+import { Plus, ShoppingBag, PanelsTopLeft, Settings, MessageCircle, ArrowUpRight } from "lucide-react";
 
 export default async function AdminOverviewPage({
   searchParams,
 }: PageProps<"/admin">) {
-  await requirePermission("dashboard:view");
+  const user = await requirePermission("dashboard:view");
   const params = await searchParams;
-  const metrics = await getDashboardMetrics();
+  const canWriteProducts = hasPermission(user.role, "products:write");
+
+  const [metrics, categories] = await Promise.all([
+    getDashboardMetrics(),
+    canWriteProducts
+      ? prisma.category.findMany({
+          where: { isActive: true },
+          orderBy: { sortOrder: "asc" },
+        })
+      : Promise.resolve([]),
+  ]);
 
   const orderStatuses = Object.entries(metrics.orderStatusCounts) as [string, number][];
   const paymentStatuses = Object.entries(metrics.paymentStatusCounts) as [string, number][];
+
+  // Calculate total orders and payments for visual progress bars
+  const totalOrders = orderStatuses.reduce((acc, [, count]) => acc + count, 0);
+  const totalPayments = paymentStatuses.reduce((acc, [, count]) => acc + count, 0);
 
   return (
     <>
@@ -37,97 +55,204 @@ export default async function AdminOverviewPage({
       ) : null}
 
       {metrics.pendingWhatsAppOrders > 0 ? (
-        <AlertBanner variant="warning">
-          {metrics.pendingWhatsAppOrders} WhatsApp order
-          {metrics.pendingWhatsAppOrders === 1 ? "" : "s"} awaiting payment —{" "}
-          <Link href="/admin/orders" className="font-medium underline">
-            review in Orders
+        <div className="mb-6 flex items-center justify-between rounded-2xl border border-amber-300 bg-amber-50/90 p-4 text-amber-900 shadow-xs">
+          <div className="flex items-center gap-3">
+            <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-amber-200 text-amber-800">
+              <MessageCircle className="h-5 w-5" />
+            </span>
+            <div>
+              <p className="text-xs font-bold uppercase tracking-wider text-amber-800">
+                Action Required
+              </p>
+              <p className="text-sm font-semibold">
+                {metrics.pendingWhatsAppOrders} WhatsApp order
+                {metrics.pendingWhatsAppOrders === 1 ? "" : "s"} awaiting payment review
+              </p>
+            </div>
+          </div>
+          <Link
+            href="/admin/orders"
+            className="inline-flex items-center gap-1.5 rounded-lg bg-amber-900 px-3.5 py-2 text-xs font-semibold text-white transition hover:bg-amber-950"
+          >
+            Review Orders <ArrowUpRight className="h-3.5 w-3.5" />
           </Link>
-          .
-        </AlertBanner>
+        </div>
       ) : null}
 
-      <PageHeader
-        icon="dashboard"
-        title="Overview"
-        description="Live store metrics from your database. All figures tolerate an empty catalog and zero orders."
-      />
-
-      <div className="mb-4 rounded-md border border-[#e8e4dc] bg-[#f5f2ec] px-4 py-3 text-sm text-[#3d3b36]">
-        <strong className="font-medium text-[#1a1a18]">Refund treatment:</strong>{" "}
-        Gross paid sales sums order totals for paid-through-refunded statuses, then
-        subtracts <em>completed</em> refund amounts. Partial refunds reduce net
-        revenue accordingly; orders still in a refund workflow are not adjusted until
-        the refund completes.
+      {/* Header and Quick Action Strip */}
+      <div className="mb-6 flex flex-col justify-between gap-4 md:flex-row md:items-end">
+        <PageHeader
+          icon="dashboard"
+          title="Executive Overview"
+          description="Live store revenue, sales performance, and operations intelligence."
+          actions={
+            <div className="flex flex-wrap items-center gap-2">
+              {canWriteProducts ? (
+                <ProductFormModal
+                  categories={categories}
+                  trigger={
+                    <button
+                      type="button"
+                      className="inline-flex items-center gap-2 rounded-xl bg-[#1a1a18] px-4 py-2.5 text-xs font-semibold uppercase tracking-wider text-[#fbf9f5] shadow-xs transition hover:bg-[#2f2e2a]"
+                    >
+                      <Plus className="h-3.5 w-3.5 text-[#d4af37]" />
+                      <span>Add Product</span>
+                    </button>
+                  }
+                />
+              ) : (
+                <Link
+                  href="/admin/products"
+                  className="inline-flex items-center gap-2 rounded-xl bg-[#1a1a18] px-4 py-2.5 text-xs font-semibold uppercase tracking-wider text-[#fbf9f5] shadow-xs transition hover:bg-[#2f2e2a]"
+                >
+                  <Plus className="h-3.5 w-3.5 text-[#d4af37]" />
+                  <span>Add Product</span>
+                </Link>
+              )}
+              <Link
+                href="/admin/orders"
+                className="inline-flex items-center gap-2 rounded-xl border border-[#d8d3c8] bg-white px-3.5 py-2.5 text-xs font-semibold uppercase tracking-wider text-[#1a1a18] transition hover:bg-[#f5efe6]"
+              >
+                <ShoppingBag className="h-3.5 w-3.5 text-[#6b6459]" />
+                <span>Orders</span>
+              </Link>
+              <Link
+                href="/admin/homepage"
+                className="inline-flex items-center gap-2 rounded-xl border border-[#d8d3c8] bg-white px-3.5 py-2.5 text-xs font-semibold uppercase tracking-wider text-[#1a1a18] transition hover:bg-[#f5efe6]"
+              >
+                <PanelsTopLeft className="h-3.5 w-3.5 text-[#6b6459]" />
+                <span>Hero</span>
+              </Link>
+              <Link
+                href="/admin/settings"
+                className="inline-flex items-center gap-2 rounded-xl border border-[#d8d3c8] bg-white px-3.5 py-2.5 text-xs font-semibold uppercase tracking-wider text-[#1a1a18] transition hover:bg-[#f5efe6]"
+              >
+                <Settings className="h-3.5 w-3.5 text-[#6b6459]" />
+                <span>Settings</span>
+              </Link>
+            </div>
+          }
+        />
       </div>
 
-      <div data-tour="metrics" className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      {/* Key Metric Stat Cards */}
+      <div data-tour="metrics" className="grid gap-5 sm:grid-cols-2 xl:grid-cols-4">
         <StatCard
-          label="Gross paid sales (net of refunds)"
+          label="Gross Paid Sales (Net of Refunds)"
           value={formatNgn(metrics.grossPaidSalesKobo)}
-          hint={`Order gross ${formatNgn(metrics.grossOrderKobo)} − refunds ${formatNgn(metrics.completedRefundsKobo)}`}
+          hint={`Order Gross ${formatNgn(metrics.grossOrderKobo)} − Refunds ${formatNgn(metrics.completedRefundsKobo)}`}
+          trend="Live DB"
         />
-        <StatCard label="Average order value" value={formatNgn(metrics.aovKobo)} />
-        <StatCard label="Orders today" value={String(metrics.ordersToday)} />
         <StatCard
-          label="Orders this week / month"
+          label="Average Order Value"
+          value={formatNgn(metrics.aovKobo)}
+          hint="Per paid order across all channels"
+        />
+        <StatCard
+          label="Orders Today"
+          value={String(metrics.ordersToday)}
+          hint="Orders recorded since midnight"
+          trend="Today"
+        />
+        <StatCard
+          label="Orders Week / Month"
           value={`${metrics.ordersWeek} / ${metrics.ordersMonth}`}
+          hint="Rolling 7-day and 30-day velocity"
         />
       </div>
 
-      <div className="mt-6 grid gap-6 lg:grid-cols-2">
+      {/* Status Breakdown Section with Visual Meters */}
+      <div className="mt-8 grid gap-6 lg:grid-cols-2">
         <AdminCard>
-          <AdminCardHeader title="Orders by status" />
+          <AdminCardHeader
+            title="Orders by Workflow Status"
+            description="Active fulfillment pipeline from placement to delivery"
+          />
           <AdminCardBody>
             {orderStatuses.length === 0 ? (
-              <EmptyState title="No orders yet" />
+              <EmptyState title="No orders in pipeline yet" />
             ) : (
-              <ul className="space-y-2 text-sm">
-                {orderStatuses.map(([status, count]) => (
-                  <li key={status} className="flex justify-between">
-                    <span>{formatOrderStatus(status as never)}</span>
-                    <span className="font-medium tabular-nums">{count}</span>
-                  </li>
-                ))}
+              <ul className="space-y-3.5">
+                {orderStatuses.map(([status, count]) => {
+                  const pct = totalOrders > 0 ? Math.round((count / totalOrders) * 100) : 0;
+                  return (
+                    <li key={status} className="space-y-1.5">
+                      <div className="flex justify-between text-xs">
+                        <span className="font-medium text-[#1a1a18]">{formatOrderStatus(status as never)}</span>
+                        <div className="flex items-center gap-2">
+                          <span className="font-semibold tabular-nums text-[#1a1a18]">{count}</span>
+                          <span className="text-[11px] text-[#7a776f]">({pct}%)</span>
+                        </div>
+                      </div>
+                      <div className="h-2 w-full overflow-hidden rounded-full bg-[#f4efe7]">
+                        <div
+                          className="h-full rounded-full bg-gradient-to-r from-[#b38e5d] to-[#d4af37] transition-all duration-500"
+                          style={{ width: `${Math.max(pct, 4)}%` }}
+                        />
+                      </div>
+                    </li>
+                  );
+                })}
               </ul>
             )}
           </AdminCardBody>
         </AdminCard>
 
         <AdminCard>
-          <AdminCardHeader title="Payments by status" />
+          <AdminCardHeader
+            title="Payments by Status"
+            description="Reconciliation across Paystack and offline WhatsApp channels"
+          />
           <AdminCardBody>
             {paymentStatuses.length === 0 ? (
-              <EmptyState title="No payments yet" />
+              <EmptyState title="No payment transactions yet" />
             ) : (
-              <ul className="space-y-2 text-sm">
-                {paymentStatuses.map(([status, count]) => (
-                  <li key={status} className="flex justify-between">
-                    <span>{formatPaymentStatus(status as never)}</span>
-                    <span className="font-medium tabular-nums">{count}</span>
-                  </li>
-                ))}
+              <ul className="space-y-3.5">
+                {paymentStatuses.map(([status, count]) => {
+                  const pct = totalPayments > 0 ? Math.round((count / totalPayments) * 100) : 0;
+                  return (
+                    <li key={status} className="space-y-1.5">
+                      <div className="flex justify-between text-xs">
+                        <span className="font-medium text-[#1a1a18]">{formatPaymentStatus(status as never)}</span>
+                        <div className="flex items-center gap-2">
+                          <span className="font-semibold tabular-nums text-[#1a1a18]">{count}</span>
+                          <span className="text-[11px] text-[#7a776f]">({pct}%)</span>
+                        </div>
+                      </div>
+                      <div className="h-2 w-full overflow-hidden rounded-full bg-[#f4efe7]">
+                        <div
+                          className="h-full rounded-full bg-gradient-to-r from-emerald-500 to-teal-600 transition-all duration-500"
+                          style={{ width: `${Math.max(pct, 4)}%` }}
+                        />
+                      </div>
+                    </li>
+                  );
+                })}
               </ul>
             )}
           </AdminCardBody>
         </AdminCard>
       </div>
 
-      <div className="mt-6 grid gap-6 lg:grid-cols-2">
+      {/* Product Intelligence: Best Sellers & Low Stock */}
+      <div className="mt-8 grid gap-6 lg:grid-cols-2">
         <AdminCard>
-          <AdminCardHeader title="Best sellers" description="By units sold (all time)" />
+          <AdminCardHeader
+            title="Best Performing Pieces"
+            description="Ranked by cumulative volume sold"
+          />
           <AdminCardBody>
             {metrics.bestSellers.length === 0 ? (
-              <EmptyState title="No sales data yet" />
+              <EmptyState title="No product sales records yet" />
             ) : (
-              <ul className="space-y-2 text-sm">
+              <ul className="divide-y divide-[#f2ede4] text-xs">
                 {metrics.bestSellers.map((row) => (
-                  <li key={row.productId} className="flex justify-between gap-2">
-                    <span className="truncate">
-                      {row.name}{" "}
-                      <span className="text-[#7a776f]">({row.sku})</span>
-                    </span>
-                    <span className="shrink-0 font-medium tabular-nums">
+                  <li key={row.productId} className="flex items-center justify-between py-3">
+                    <div className="min-w-0 pr-4">
+                      <p className="truncate font-semibold text-[#1a1a18]">{row.name}</p>
+                      <p className="font-mono text-[11px] text-[#7a776f]">{row.sku}</p>
+                    </div>
+                    <span className="shrink-0 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-[11px] font-bold text-emerald-800 tabular-nums">
                       {row.quantity} sold
                     </span>
                   </li>
@@ -139,28 +264,29 @@ export default async function AdminOverviewPage({
 
         <AdminCard>
           <AdminCardHeader
-            title="Low stock"
+            title="Stock Replenishment Alerts"
+            description="Inventory at or below defined low-stock thresholds"
             action={
-              <Link href="/admin/inventory" className="text-xs font-medium underline">
-                Inventory
+              <Link href="/admin/inventory" className="text-xs font-semibold text-[#b38e5d] hover:underline">
+                Manage Inventory →
               </Link>
             }
           />
           <AdminCardBody>
             {metrics.lowStock.length === 0 ? (
-              <EmptyState title="No low-stock alerts" description="Threshold is per-product low stock level." />
+              <EmptyState title="All inventory healthy" description="No pieces currently below their threshold." />
             ) : (
-              <ul className="space-y-2 text-sm">
+              <ul className="divide-y divide-[#f2ede4] text-xs">
                 {metrics.lowStock.map((p) => (
-                  <li key={p.id} className="flex justify-between">
+                  <li key={p.id} className="flex items-center justify-between py-3">
                     <Link
                       href="/admin/products"
-                      className="truncate hover:underline"
+                      className="truncate font-semibold text-[#1a1a18] hover:text-[#b38e5d] hover:underline"
                     >
                       {p.name}
                     </Link>
                     <Badge tone={p.stock === 0 ? "danger" : "warning"}>
-                      {p.stock} / warn {p.lowStockAt}
+                      {p.stock === 0 ? "Sold Out (0)" : `${p.stock} left (warn at ${p.lowStockAt})`}
                     </Badge>
                   </li>
                 ))}
@@ -170,63 +296,71 @@ export default async function AdminOverviewPage({
         </AdminCard>
       </div>
 
-      <div className="mt-6">
+      {/* Recent Orders Executive Table */}
+      <div className="mt-8">
         <AdminCard>
           <AdminCardHeader
-            title="Recent orders"
+            title="Recent Orders"
+            description="Live feed of incoming customer orders across channels"
             action={
-              <Link href="/admin/orders" className="text-xs font-medium underline">
-                View all
+              <Link href="/admin/orders" className="text-xs font-semibold text-[#b38e5d] hover:underline">
+                View all orders →
               </Link>
             }
           />
           <AdminCardBody className="p-0">
             {metrics.recentOrders.length === 0 ? (
-              <div className="p-4">
-                <EmptyState title="No orders yet" />
+              <div className="p-6">
+                <EmptyState title="No orders recorded yet" />
               </div>
             ) : (
               <DataTable>
                 <thead>
                   <tr>
-                    <Th>Order</Th>
+                    <Th>Order ID</Th>
                     <Th>Customer</Th>
                     <Th>Channel</Th>
                     <Th>Status</Th>
                     <Th>Total</Th>
-                    <Th>Date</Th>
+                    <Th>Date & Time</Th>
                   </tr>
                 </thead>
-                <tbody>
+                <tbody className="divide-y divide-[#f3efe8]">
                   {metrics.recentOrders.map((o) => (
-                    <tr key={o.id} className="hover:bg-[#faf8f5]/80">
+                    <tr key={o.id} className="transition-colors hover:bg-[#faf8f5]">
                       <Td>
                         <Link
                           href={`/admin/orders/${o.id}`}
-                          className="font-medium hover:underline"
+                          className="font-mono font-semibold text-[#1a1a18] hover:text-[#b38e5d] hover:underline"
                         >
                           {o.orderNumber}
                         </Link>
                       </Td>
-                      <Td>{o.customerName}</Td>
+                      <Td className="font-medium text-[#1a1a18]">{o.customerName}</Td>
                       <Td>
-                        <Badge tone={o.channel === "WHATSAPP" ? "info" : "neutral"}>
+                        <Badge tone={o.channel === "WHATSAPP" ? "success" : "neutral"}>
                           {formatOrderChannel(o.channel)}
                         </Badge>
                       </Td>
                       <Td>
                         <Badge
                           tone={
-                            o.status === "PENDING_PAYMENT" && o.channel === "WHATSAPP"
-                              ? "warning"
-                              : "neutral"
+                            o.status === "DELIVERED"
+                              ? "success"
+                              : o.status === "PENDING_PAYMENT"
+                                ? "warning"
+                                : o.status === "CANCELLED"
+                                  ? "danger"
+                                  : "info"
                           }
                         >
                           {formatOrderStatus(o.status)}
                         </Badge>
                       </Td>
-                      <Td className="tabular-nums">{formatNgn(o.totalKobo)}</Td>
-                      <Td className="text-[#5c5a54]">
+                      <Td className="font-semibold tabular-nums text-[#1a1a18]">
+                        {formatNgn(o.totalKobo)}
+                      </Td>
+                      <Td className="text-xs text-[#6b6459]">
                         {format(o.createdAt, "d MMM yyyy, HH:mm")}
                       </Td>
                     </tr>

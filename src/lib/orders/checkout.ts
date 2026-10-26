@@ -44,6 +44,8 @@ export type CheckoutInput = {
   userId?: string | null;
   couponCode?: string | null;
   paymentMethod?: CheckoutPaymentMethod;
+  /** Cart to clear after successful Paystack payment (works for webhooks too). */
+  cartId?: string | null;
 };
 
 function normalizeWhatsAppDigits(raw: string): string {
@@ -418,7 +420,11 @@ export async function createPendingOrderAndInitializePayment(input: CheckoutInpu
         amountKobo: totalKobo,
         currency: "NGN",
         status: "PENDING",
-        metadataJson: { channel: "whatsapp", whatsappUrl },
+        metadataJson: {
+          channel: "whatsapp",
+          whatsappUrl,
+          cartId: input.cartId ?? null,
+        },
       },
     });
   } else {
@@ -433,6 +439,7 @@ export async function createPendingOrderAndInitializePayment(input: CheckoutInpu
         metadata: {
           orderId: order.id,
           orderNumber: order.orderNumber,
+          cartId: input.cartId ?? null,
         },
       });
     } catch (error) {
@@ -459,6 +466,8 @@ export async function createPendingOrderAndInitializePayment(input: CheckoutInpu
     paymentReferenceOut = init.reference;
     authorizationUrl = init.authorizationUrl;
 
+    const rawMeta =
+      init.raw && typeof init.raw === "object" ? (init.raw as Record<string, unknown>) : {};
     await prisma.payment.create({
       data: {
         orderId: order.id,
@@ -469,7 +478,10 @@ export async function createPendingOrderAndInitializePayment(input: CheckoutInpu
         amountKobo: totalKobo,
         currency: "NGN",
         status: "PENDING",
-        metadataJson: (init.raw as object) ?? {},
+        metadataJson: {
+          ...rawMeta,
+          cartId: input.cartId ?? null,
+        },
       },
     });
   }

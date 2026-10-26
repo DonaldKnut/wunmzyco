@@ -1,17 +1,11 @@
 import Link from "next/link";
-import { redirect } from "next/navigation";
-import { getSessionUser } from "@/lib/auth/session";
-import { isStaffRole } from "@/lib/permissions";
 import { AuthShell } from "@/components/storefront/auth-shell";
 
 export const metadata = { title: "Create account" };
 
 /** Public registration is not used — shop is guest checkout; staff use /login. */
 export default async function RegisterPage() {
-  const user = await getSessionUser();
-  if (user && isStaffRole(user.role)) redirect("/admin");
-  if (user) redirect("/account");
-
+  // Signed-in redirect is handled in (auth)/layout.tsx
   return (
     <AuthShell>
       <div className="space-y-4">

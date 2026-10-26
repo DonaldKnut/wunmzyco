@@ -1,4 +1,5 @@
 import { releaseExpiredReservations } from "@/lib/inventory/reservations";
+import { abandonExpiredPendingOrders } from "@/lib/orders/abandon";
 import { jsonError, jsonOk } from "@/lib/api/http";
 import { getEnv } from "@/lib/env";
 
@@ -29,6 +30,13 @@ export async function GET(request: Request) {
     return jsonError("Unauthorized", 401);
   }
 
+  // Cancel expired pending checkouts first (releases their ACTIVE reservations),
+  // then sweep any remaining expired reservations.
+  const cancelledOrders = await abandonExpiredPendingOrders();
   const released = await releaseExpiredReservations();
-  return jsonOk({ released });
+  return jsonOk({ cancelledOrders, released });
+}
+
+export async function POST(request: Request) {
+  return GET(request);
 }

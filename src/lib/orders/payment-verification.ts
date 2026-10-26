@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/db";
+import { clearCart, clearCartById, restoreCartFromOrder } from "@/lib/cart";
 import { formatNgn } from "@/lib/currency";
 import { sendEmail, paymentConfirmationHtml } from "@/lib/email";
 import { commitReservationsForOrder, releaseReservationsForOrder } from "@/lib/inventory/reservations";
@@ -185,6 +186,20 @@ export async function verifyAndApplyPayment(reference: string, options?: {
   });
 
   if (result.status === "successful" && !result.alreadyProcessed) {
+    // Clear bag only after money is confirmed (cancel/abandon keeps items).
+    // Prefer cartId from payment metadata so webhooks (no cookies) still clear.
+    const paid = await prisma.payment.findUnique({
+      where: { reference },
+      select: { metadataJson: true },
+    });
+    const meta =
+      paid?.metadataJson && typeof paid.metadataJson === "object"
+        ? (paid.metadataJson as Record<string, unknown>)
+        : {};
+    const cartId = typeof meta.cartId === "string" ? meta.cartId : null;
+    if (cartId) await clearCartById(cartId);
+    else await clearCart();
+
     const order = await prisma.order.findUnique({ where: { id: result.orderId } });
     if (order) {
       await sendEmail({
@@ -199,6 +214,15 @@ export async function verifyAndApplyPayment(reference: string, options?: {
         metadata: { orderId: order.id },
       });
     }
+  }
+
+  if (
+    (result.status === "failed" || result.status === "abandoned") &&
+    !result.alreadyProcessed &&
+    result.orderId
+  ) {
+    // Defensive restore — covers older flows that cleared the cart before Paystack.
+    await restoreCartFromOrder(result.orderId);
   }
 
   return result;

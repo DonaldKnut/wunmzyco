@@ -9,7 +9,7 @@ Premium, mobile-first online fashion store for **Wunmzy Co** (Nigerian women's t
 - PostgreSQL + Prisma
 - Server-side sessions + RBAC
 - Paystack payments (test/live) with a **mock provider for local development only**
-- Local or Cloudinary image storage
+- Cloudinary image storage (all uploads)
 - Console or Resend email
 - Vitest + Playwright
 
@@ -178,14 +178,13 @@ This repository does **not** purchase or claim the domain.
 - Admin UI (after bootstrap)  
 - Checkout totals & delivery quotes  
 - Mock payment success/failure flow  
-- Local image uploads to `/public/uploads`  
-- Console email logging  
+- Console email logging (image uploads require Cloudinary credentials)
 
 ## What still needs owner accounts
 
 - Live/test Paystack keys + webhook  
 - Resend API key for real email  
-- Cloudinary (optional; local storage works)  
+- Cloudinary account + API credentials (required — all image uploads go to Cloudinary)  
 - Production Postgres + domain DNS/HTTPS  
 
 ## Seed data
@@ -194,4 +193,4 @@ Seed sets delivery zones and store settings only. **No sample products** — add
 
 ## Backups
 
-Back up Postgres regularly (provider snapshots or `pg_dump`). Image files on local disk should be migrated to Cloudinary/S3 before production scale.
+Back up Postgres regularly (provider snapshots or `pg_dump`). All uploaded images live in Cloudinary under `wunmzyco/*` folders — include that account in your backup/retention plan.

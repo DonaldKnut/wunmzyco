@@ -1,14 +1,14 @@
 import Link from "next/link";
 import { ProductCard } from "@/components/storefront/product-card";
-import { PageHeading } from "@/components/storefront/page-heading";
 import { EmptyState } from "@/components/storefront/empty-state";
 import { FashionRackIllustration } from "@/components/storefront/illustrations";
 import { getActiveCategories, getShopProducts } from "@/lib/store/products";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Filter } from "lucide-react";
+import { Filter, Sparkles, X, Search } from "lucide-react";
+import { BRAND } from "@/lib/brand";
 
-export const metadata = { title: "Shop" };
+export const metadata = { title: "Shop the Edit · Wunmzy Co" };
 
 function first(value: string | string[] | undefined): string | undefined {
   return Array.isArray(value) ? value[0] : value;
@@ -37,6 +37,10 @@ export default async function ShopPage({ searchParams }: PageProps<"/shop">) {
     }),
   ]);
 
+  const hasActiveFilters = Boolean(
+    q || category || sort !== "newest" || availability !== "all" || minPrice != null || maxPrice != null,
+  );
+
   const buildHref = (overrides: Record<string, string | undefined>) => {
     const params = new URLSearchParams();
     const next = {
@@ -57,74 +61,137 @@ export default async function ShopPage({ searchParams }: PageProps<"/shop">) {
   };
 
   return (
-    <div className="mx-auto max-w-6xl px-4 py-12 sm:px-6">
-      <PageHeading
-        title="Shop"
-        description="Curated thrift and women's fashion — one-of-one finds and everyday staples."
-      />
-
-      <form className="mb-8 grid gap-3 rounded-lg border border-border bg-secondary/30 p-4 md:grid-cols-6" method="get">
-        <div className="md:col-span-2">
-          <Input name="q" defaultValue={q} placeholder="Search" aria-label="Search products" />
+    <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8">
+      {/* Editorial Page Heading */}
+      <div className="mb-10 text-center">
+        <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-[#d4af37]/40 bg-card px-4 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-[#b38e5d] shadow-xs">
+          <Sparkles className="h-3 w-3 text-[#d4af37]" /> The Complete Edit
         </div>
-        <select
-          name="category"
-          defaultValue={category}
-          aria-label="Category"
-          className="h-10 rounded-md border border-input bg-background px-3 text-sm"
-        >
-          <option value="">All categories</option>
-          {categories.map((c) => (
-            <option key={c.id} value={c.slug}>
-              {c.name}
-            </option>
-          ))}
-        </select>
-        <select
-          name="sort"
-          defaultValue={sort}
-          aria-label="Sort"
-          className="h-10 rounded-md border border-input bg-background px-3 text-sm"
-        >
-          <option value="newest">Newest</option>
-          <option value="price-asc">Price: low to high</option>
-          <option value="price-desc">Price: high to low</option>
-          <option value="name">Name</option>
-        </select>
-        <select
-          name="availability"
-          defaultValue={availability}
-          aria-label="Availability"
-          className="h-10 rounded-md border border-input bg-background px-3 text-sm"
-        >
-          <option value="all">All items</option>
-          <option value="in_stock">In stock</option>
-        </select>
-        <div className="flex gap-2 md:col-span-6 lg:col-span-2">
-          <Input name="minPrice" type="number" min={0} step={100} defaultValue={minPrice ?? ""} placeholder="Min ₦" aria-label="Minimum price in naira" />
-          <Input name="maxPrice" type="number" min={0} step={100} defaultValue={maxPrice ?? ""} placeholder="Max ₦" aria-label="Maximum price in naira" />
-          <Button type="submit" className="gap-1.5">
-            <Filter className="h-3.5 w-3.5" />
-            Filter
-          </Button>
+        <h1 className="font-display text-5xl font-medium tracking-tight text-foreground sm:text-6xl">
+          Curated Fashion Rail
+        </h1>
+        <p className="mx-auto mt-3 max-w-xl text-sm text-muted-foreground leading-relaxed sm:text-base">
+          One-of-one Nigerian thrift finds, contemporary staples, and occasion statement wear for Corporate, Street, Dinner, and Party.
+        </p>
+
+        {/* Quick Occasion Pills */}
+        <div className="mt-6 flex flex-wrap items-center justify-center gap-2">
+          {BRAND.occasions.map((occ) => {
+            const active = q.toLowerCase() === occ.toLowerCase();
+            return (
+              <Link
+                key={occ}
+                href={active ? "/shop" : `/shop?q=${occ.toLowerCase()}`}
+                className={`rounded-full border px-4 py-1.5 text-xs font-semibold tracking-wider transition-all duration-200 ${
+                  active
+                    ? "border-[#121110] bg-[#121110] text-[#fbf9f5] shadow-xs"
+                    : "border-border/80 bg-card/80 text-foreground hover:border-[#d4af37] hover:bg-card"
+                }`}
+              >
+                {occ}
+              </Link>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Filter Bar */}
+      <form
+        className="mb-10 rounded-2xl border border-border/80 bg-card p-5 shadow-xs"
+        method="get"
+      >
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-12">
+          {/* Search Field */}
+          <div className="relative sm:col-span-2 lg:col-span-4">
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              name="q"
+              defaultValue={q}
+              placeholder="Search by piece name or tag…"
+              aria-label="Search products"
+              className="pl-9 h-10 rounded-xl"
+            />
+          </div>
+
+          {/* Category Dropdown */}
+          <div className="lg:col-span-3">
+            <select
+              name="category"
+              defaultValue={category}
+              aria-label="Category"
+              className="h-10 w-full rounded-xl border border-input bg-background px-3 text-xs font-medium text-foreground focus:border-foreground focus:outline-none"
+            >
+              <option value="">All Categories</option>
+              {categories.map((c) => (
+                <option key={c.id} value={c.slug}>
+                  {c.name}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Sort Dropdown */}
+          <div className="lg:col-span-3">
+            <select
+              name="sort"
+              defaultValue={sort}
+              aria-label="Sort"
+              className="h-10 w-full rounded-xl border border-input bg-background px-3 text-xs font-medium text-foreground focus:border-foreground focus:outline-none"
+            >
+              <option value="newest">Newest Drops First</option>
+              <option value="price-asc">Price: Low to High</option>
+              <option value="price-desc">Price: High to Low</option>
+              <option value="name">Alphabetical</option>
+            </select>
+          </div>
+
+          {/* Availability */}
+          <div className="lg:col-span-2">
+            <select
+              name="availability"
+              defaultValue={availability}
+              aria-label="Availability"
+              className="h-10 w-full rounded-xl border border-input bg-background px-3 text-xs font-medium text-foreground focus:border-foreground focus:outline-none"
+            >
+              <option value="all">All Items</option>
+              <option value="in_stock">In Stock Only</option>
+            </select>
+          </div>
+        </div>
+
+        {/* Filter Action and Active Pill Bar */}
+        <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-border/60 pt-3">
+          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+            <span className="font-semibold text-foreground">{result.total}</span> piece{result.total === 1 ? "" : "s"} available
+            {hasActiveFilters ? (
+              <Link
+                href="/shop"
+                className="ml-2 inline-flex items-center gap-1 text-xs font-medium text-rose-700 hover:underline"
+              >
+                <X className="h-3 w-3" /> Reset Filters
+              </Link>
+            ) : null}
+          </div>
+
+          <div className="flex items-center gap-2">
+            <Button type="submit" size="sm" className="rounded-xl px-5 gap-1.5 text-xs font-semibold">
+              <Filter className="h-3.5 w-3.5" /> Apply Filters
+            </Button>
+          </div>
         </div>
       </form>
 
-      <p className="mb-6 text-sm text-muted-foreground">
-        {result.total} product{result.total === 1 ? "" : "s"}
-        {result.totalPages > 1 ? ` · Page ${result.page} of ${result.totalPages}` : ""}
-      </p>
-
+      {/* Product Grid */}
       {result.products.length === 0 ? (
         <EmptyState
           illustration={<FashionRackIllustration />}
-          title="Nothing on the rack"
-          description="No published products match these filters yet. Add inventory from the admin dashboard, or clear filters to browse everything."
-          actionHref="/admin/products"
-          actionLabel="Add products in admin"
+          title="No pieces match your search"
+          description="Try broadening your filters or explore other occasion categories on the rail."
+          actionHref="/shop"
+          actionLabel="View All Pieces"
         />
       ) : (
-        <ul className="grid gap-x-6 gap-y-10 sm:grid-cols-2 lg:grid-cols-4">
+        <ul className="grid gap-x-6 gap-y-12 sm:grid-cols-2 lg:grid-cols-4">
           {result.products.map((product) => (
             <li key={product.id}>
               <ProductCard product={product} />
@@ -133,20 +200,21 @@ export default async function ShopPage({ searchParams }: PageProps<"/shop">) {
         </ul>
       )}
 
+      {/* Pagination */}
       {result.totalPages > 1 ? (
-        <nav className="mt-12 flex items-center justify-center gap-4" aria-label="Pagination">
+        <nav className="mt-16 flex items-center justify-center gap-3" aria-label="Pagination">
           {result.page > 1 ? (
-            <Link href={buildHref({ page: String(result.page - 1) })} className="text-sm underline-offset-4 hover:underline">
-              Previous
-            </Link>
+            <Button asChild variant="outline" size="sm" className="rounded-full px-5">
+              <Link href={buildHref({ page: String(result.page - 1) })}>Previous</Link>
+            </Button>
           ) : null}
-          <span className="text-sm text-muted-foreground">
-            {result.page} / {result.totalPages}
+          <span className="rounded-full border border-border bg-card px-4 py-1.5 text-xs font-semibold text-foreground shadow-xs">
+            {result.page} of {result.totalPages}
           </span>
           {result.page < result.totalPages ? (
-            <Link href={buildHref({ page: String(result.page + 1) })} className="text-sm underline-offset-4 hover:underline">
-              Next
-            </Link>
+            <Button asChild variant="outline" size="sm" className="rounded-full px-5">
+              <Link href={buildHref({ page: String(result.page + 1) })}>Next</Link>
+            </Button>
           ) : null}
         </nav>
       ) : null}

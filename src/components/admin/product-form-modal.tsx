@@ -25,33 +25,36 @@ export function ProductFormModal({
   categories,
   product,
   mode = "create",
+  trigger,
 }: {
   categories: Category[];
   product?: ProductWithCats;
   mode?: "create" | "edit";
+  /** Optional custom trigger (e.g. overview “Add Product” button). */
+  trigger?: React.ReactNode;
 }) {
   const [open, setOpen] = React.useState(false);
   const isEdit = mode === "edit" && product;
 
+  const defaultTrigger = isEdit ? (
+    <button
+      type="button"
+      className="inline-flex h-7 items-center gap-1 rounded-md px-2 text-xs font-medium text-[#3d3b36] hover:bg-[#f0ebe3]"
+      title="Edit"
+    >
+      <Pencil className="h-3 w-3" aria-hidden />
+      Edit
+    </button>
+  ) : (
+    <Button type="button" className="gap-1.5">
+      <Plus className="h-3.5 w-3.5" aria-hidden />
+      New product
+    </Button>
+  );
+
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        {isEdit ? (
-          <button
-            type="button"
-            className="inline-flex h-7 items-center gap-1 rounded-md px-2 text-xs font-medium text-[#3d3b36] hover:bg-[#f0ebe3]"
-            title="Edit"
-          >
-            <Pencil className="h-3 w-3" aria-hidden />
-            Edit
-          </button>
-        ) : (
-          <Button type="button" className="gap-1.5">
-            <Plus className="h-3.5 w-3.5" aria-hidden />
-            New product
-          </Button>
-        )}
-      </DialogTrigger>
+      <DialogTrigger asChild>{trigger ?? defaultTrigger}</DialogTrigger>
       <DialogContent
         className={cn(
           "max-h-[min(92dvh,800px)] max-w-3xl overflow-hidden border-[#e8e4dc] bg-[#faf8f5] p-0 shadow-2xl sm:rounded-xl",

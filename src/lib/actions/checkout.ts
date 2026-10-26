@@ -2,7 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { getSessionUser } from "@/lib/auth/session";
-import { clearCart, getCartLines } from "@/lib/cart";
+import { clearCart, getCartLines, getOrCreateCartId } from "@/lib/cart";
 import { createPendingOrderAndInitializePayment } from "@/lib/orders/checkout";
 import { checkoutFormSchema } from "@/lib/schemas/checkout";
 
@@ -40,6 +40,7 @@ export async function submitCheckout(
 
   const { couponCode, paymentMethod, ...address } = parsed.data;
   const user = await getSessionUser();
+  const cartId = await getOrCreateCartId();
 
   try {
     const result = await createPendingOrderAndInitializePayment({
@@ -56,9 +57,14 @@ export async function submitCheckout(
       userId: user?.id ?? null,
       couponCode: couponCode?.trim() || null,
       paymentMethod,
+      cartId,
     });
 
-    await clearCart();
+    // Paystack: keep the bag until payment succeeds (cancel → items still there).
+    // WhatsApp: order is already placed for admin — clear the bag now.
+    if (paymentMethod === "whatsapp") {
+      await clearCart();
+    }
 
     if (result.authorizationUrl) {
       redirect(result.authorizationUrl);

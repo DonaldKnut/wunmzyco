@@ -3,6 +3,7 @@ import { prisma } from "@/lib/db";
 import { hasPermission } from "@/lib/permissions";
 import { upsertCategory } from "@/server/actions/catalog";
 import { AdminFormModal } from "@/components/admin/form-modal";
+import { ImageUploadField } from "@/components/admin/image-upload-field";
 import {
   Badge,
   Button,
@@ -60,6 +61,11 @@ export default async function AdminCategoriesPage() {
                 <div className="sm:col-span-2">
                   <Field label="Description">
                     <Textarea name="description" />
+                  </Field>
+                </div>
+                <div className="sm:col-span-2">
+                  <Field label="Category image (Cloudinary)">
+                    <ImageUploadField name="imageUrl" folder="categories" />
                   </Field>
                 </div>
                 <Button type="submit" className="sm:col-span-2">

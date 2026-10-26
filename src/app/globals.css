@@ -1,23 +1,25 @@
 @import "tailwindcss";
 
 :root {
-  --background: #f7f3ec;
-  --foreground: #111111;
-  --card: #faf7f1;
-  --card-foreground: #111111;
-  --muted: #ebe4d8;
-  --muted-foreground: #5c564e;
-  --border: #ddd4c6;
-  --input: #ddd4c6;
-  --ring: #6b705c;
-  --primary: #111111;
-  --primary-foreground: #f7f3ec;
-  --secondary: #ebe4d8;
-  --secondary-foreground: #111111;
-  --accent: #9a8b7a;
-  --accent-foreground: #faf7f1;
-  --destructive: #8b3a3a;
-  --destructive-foreground: #faf7f1;
+  --background: #fbf9f5;
+  --foreground: #121110;
+  --card: #ffffff;
+  --card-foreground: #121110;
+  --muted: #f2ede4;
+  --muted-foreground: #6b6459;
+  --border: #e8e2d7;
+  --input: #e4ded3;
+  --ring: #c5a880;
+  --primary: #121110;
+  --primary-foreground: #fbf9f5;
+  --secondary: #f4efe7;
+  --secondary-foreground: #121110;
+  --accent: #b38e5d;
+  --accent-foreground: #ffffff;
+  --destructive: #943a3a;
+  --destructive-foreground: #ffffff;
+  --gold: #d4af37;
+  --gold-glow: rgba(212, 175, 55, 0.15);
 }
 
 @theme inline {
@@ -46,25 +48,79 @@ body {
   background: var(--background);
   color: var(--foreground);
   font-family: var(--font-sans), system-ui, sans-serif;
+  letter-spacing: -0.01em;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 .font-display {
   font-family: var(--font-display), Georgia, "Times New Roman", serif;
+  font-feature-settings: "liga" 1, "dlig" 1;
 }
 
 .prose-store {
   max-width: 65ch;
-  line-height: 1.75;
+  line-height: 1.8;
 }
 
 .prose-store p + p {
-  margin-top: 1rem;
+  margin-top: 1.15rem;
+}
+
+/* Glassmorphism utilities */
+.glass-luxury {
+  background: rgba(255, 255, 255, 0.82);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  box-shadow: 0 4px 24px -1px rgba(18, 17, 16, 0.04), 0 2px 6px -1px rgba(18, 17, 16, 0.02);
+}
+
+.glass-luxury-dark {
+  background: rgba(18, 17, 16, 0.85);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.35);
+}
+
+.gold-shimmer-border {
+  position: relative;
+}
+
+.gold-shimmer-border::after {
+  content: "";
+  position: absolute;
+  inset: -1px;
+  border-radius: inherit;
+  padding: 1px;
+  background: linear-gradient(135deg, rgba(212, 175, 55, 0.4), transparent 50%, rgba(179, 142, 93, 0.4));
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+}
+
+/* Custom scrollbars */
+::-webkit-scrollbar {
+  width: 7px;
+  height: 7px;
+}
+::-webkit-scrollbar-track {
+  background: #f4efe7;
+}
+::-webkit-scrollbar-thumb {
+  background: #d8d0c2;
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #bfae98;
 }
 
 @keyframes fade-up {
   from {
     opacity: 0;
-    transform: translateY(10px);
+    transform: translateY(14px);
   }
   to {
     opacity: 1;
@@ -77,16 +133,35 @@ body {
   100% {
     transform: scale(1);
   }
-  40% {
-    transform: scale(1.12);
+  35% {
+    transform: scale(1.15);
   }
-  70% {
-    transform: scale(0.96);
+  65% {
+    transform: scale(0.95);
   }
 }
 
+@keyframes marquee {
+  0% {
+    transform: translateX(0%);
+  }
+  100% {
+    transform: translateX(-50%);
+  }
+}
+
+.animate-marquee {
+  display: flex;
+  width: max-content;
+  animation: marquee 28s linear infinite;
+}
+
+.animate-marquee:hover {
+  animation-play-state: paused;
+}
+
 .animate-fade-up {
-  animation: fade-up 0.55s ease both;
+  animation: fade-up 0.65s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
 @keyframes wa-pulse {
@@ -94,7 +169,7 @@ body {
     box-shadow: 0 0 0 0 rgba(37, 211, 102, 0.55);
   }
   70% {
-    box-shadow: 0 0 0 14px rgba(37, 211, 102, 0);
+    box-shadow: 0 0 0 16px rgba(37, 211, 102, 0);
   }
   100% {
     box-shadow: 0 0 0 0 rgba(37, 211, 102, 0);
@@ -116,7 +191,7 @@ body {
 @keyframes wa-panel-in {
   from {
     opacity: 0;
-    transform: translateY(12px) scale(0.96);
+    transform: translateY(14px) scale(0.96);
   }
   to {
     opacity: 1;

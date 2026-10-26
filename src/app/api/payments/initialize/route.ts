@@ -2,7 +2,7 @@ import { jsonError, jsonOk, enforceRateLimit } from "@/lib/api/http";
 import { getSessionUser } from "@/lib/auth/session";
 import { createPendingOrderAndInitializePayment } from "@/lib/orders/checkout";
 import { paymentInitializeSchema } from "@/lib/schemas/api";
-import { cartToCheckoutItems, getOrCreateCart } from "@/lib/cart";
+import { cartToCheckoutItems, getOrCreateCart, getOrCreateCartId } from "@/lib/cart";
 
 export async function POST(request: Request) {
   const limited = await enforceRateLimit("checkout", 8, 60_000);
@@ -32,11 +32,13 @@ export async function POST(request: Request) {
   }
 
   try {
+    const cartId = await getOrCreateCartId();
     const result = await createPendingOrderAndInitializePayment({
       items,
       address: parsed.data.address,
       userId: user?.id ?? null,
       couponCode: parsed.data.couponCode ?? null,
+      cartId,
     });
 
     return jsonOk({

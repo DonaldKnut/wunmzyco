@@ -15,6 +15,9 @@ export async function upsertCategory(formData: FormData): Promise<ActionResult> 
     const name = String(formData.get("name") ?? "").trim();
     const slug = slugify(String(formData.get("slug") ?? name));
     const description = String(formData.get("description") ?? "").trim() || null;
+    const imageUrlRaw = formData.get("imageUrl");
+    const imageUrl =
+      imageUrlRaw === null ? undefined : String(imageUrlRaw).trim() || null;
     const sortOrder = Number(formData.get("sortOrder") ?? 0);
     const isActive = formData.get("isActive") === "on";
 
@@ -23,11 +26,18 @@ export async function upsertCategory(formData: FormData): Promise<ActionResult> 
     if (id) {
       await prisma.category.update({
         where: { id },
-        data: { name, slug, description, sortOrder, isActive },
+        data: {
+          name,
+          slug,
+          description,
+          sortOrder,
+          isActive,
+          ...(imageUrl !== undefined ? { imageUrl } : {}),
+        },
       });
     } else {
       await prisma.category.create({
-        data: { name, slug, description, sortOrder, isActive },
+        data: { name, slug, description, sortOrder, isActive, imageUrl: imageUrl ?? null },
       });
     }
 
@@ -55,6 +65,9 @@ export async function upsertCollection(formData: FormData): Promise<ActionResult
     const name = String(formData.get("name") ?? "").trim();
     const slug = slugify(String(formData.get("slug") ?? name));
     const description = String(formData.get("description") ?? "").trim() || null;
+    const imageUrlRaw = formData.get("imageUrl");
+    const imageUrl =
+      imageUrlRaw === null ? undefined : String(imageUrlRaw).trim() || null;
     const sortOrder = Number(formData.get("sortOrder") ?? 0);
     const isFeatured = formData.get("isFeatured") === "on";
     const isActive = formData.get("isActive") === "on";
@@ -64,11 +77,27 @@ export async function upsertCollection(formData: FormData): Promise<ActionResult
     if (id) {
       await prisma.collection.update({
         where: { id },
-        data: { name, slug, description, sortOrder, isFeatured, isActive },
+        data: {
+          name,
+          slug,
+          description,
+          sortOrder,
+          isFeatured,
+          isActive,
+          ...(imageUrl !== undefined ? { imageUrl } : {}),
+        },
       });
     } else {
       await prisma.collection.create({
-        data: { name, slug, description, sortOrder, isFeatured, isActive },
+        data: {
+          name,
+          slug,
+          description,
+          sortOrder,
+          isFeatured,
+          isActive,
+          imageUrl: imageUrl ?? null,
+        },
       });
     }
 

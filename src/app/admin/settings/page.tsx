@@ -2,6 +2,7 @@ import { requirePermission } from "@/lib/admin/auth";
 import { prisma } from "@/lib/db";
 import { hasPermission } from "@/lib/permissions";
 import { updateStoreSettings } from "@/server/actions/settings";
+import { ImageUploadField } from "@/components/admin/image-upload-field";
 import {
   AdminCard,
   AdminCardBody,
@@ -55,6 +56,26 @@ export default async function AdminSettingsPage() {
             <Field label="WhatsApp number">
               <Input name="whatsappNumber" defaultValue={settings.whatsappNumber ?? ""} disabled={!canWrite} />
             </Field>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <Field label="Logo (Cloudinary)">
+                <ImageUploadField
+                  name="logoUrl"
+                  folder="branding"
+                  defaultValue={settings.logoUrl ?? ""}
+                  disabled={!canWrite}
+                  previewClassName="aspect-square max-w-[10rem]"
+                />
+              </Field>
+              <Field label="Favicon (Cloudinary)">
+                <ImageUploadField
+                  name="faviconUrl"
+                  folder="branding"
+                  defaultValue={settings.faviconUrl ?? ""}
+                  disabled={!canWrite}
+                  previewClassName="aspect-square max-w-[10rem]"
+                />
+              </Field>
+            </div>
             <Field label="Announcement bar">
               <Input name="announcementBar" defaultValue={settings.announcementBar ?? ""} disabled={!canWrite} />
             </Field>

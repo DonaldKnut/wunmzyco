@@ -24,6 +24,11 @@ export async function updateStoreSettings(formData: FormData): Promise<ActionRes
     const aboutCopy = String(formData.get("aboutCopy") ?? "").trim() || null;
     const shippingPolicy = String(formData.get("shippingPolicy") ?? "").trim() || null;
     const returnsPolicy = String(formData.get("returnsPolicy") ?? "").trim() || null;
+    const logoUrlRaw = formData.get("logoUrl");
+    const logoUrl = logoUrlRaw === null ? undefined : String(logoUrlRaw).trim() || null;
+    const faviconUrlRaw = formData.get("faviconUrl");
+    const faviconUrl =
+      faviconUrlRaw === null ? undefined : String(faviconUrlRaw).trim() || null;
 
     if (!storeName || !contactEmail) {
       return actionError("Store name and contact email are required.");
@@ -47,6 +52,8 @@ export async function updateStoreSettings(formData: FormData): Promise<ActionRes
         aboutCopy,
         shippingPolicy,
         returnsPolicy,
+        logoUrl: logoUrl ?? null,
+        faviconUrl: faviconUrl ?? null,
       },
       update: {
         storeName,
@@ -63,6 +70,8 @@ export async function updateStoreSettings(formData: FormData): Promise<ActionRes
         aboutCopy,
         shippingPolicy,
         returnsPolicy,
+        ...(logoUrl !== undefined ? { logoUrl } : {}),
+        ...(faviconUrl !== undefined ? { faviconUrl } : {}),
       },
     });
 

@@ -229,7 +229,7 @@ export function ProductForm({
           ) : (
             <div className="flex flex-col items-center justify-center gap-2 rounded-md border border-dashed border-[#d8d3c8] bg-[#faf8f5] px-4 py-8 text-center">
               <ImagePlus className="h-6 w-6 text-[#7a776f]" />
-              <p className="text-xs text-[#5c5a54]">Upload photos — stored on Cloudinary when configured.</p>
+              <p className="text-xs text-[#5c5a54]">Upload photos — stored on Cloudinary.</p>
             </div>
           )}
           <label className="inline-flex cursor-pointer items-center gap-2 rounded-md border border-[#d8d3c8] bg-[#faf8f5] px-3 py-2 text-xs font-medium text-[#1a1a18] hover:bg-[#f0ebe3]">

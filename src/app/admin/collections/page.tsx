@@ -3,6 +3,7 @@ import { prisma } from "@/lib/db";
 import { hasPermission } from "@/lib/permissions";
 import { upsertCollection } from "@/server/actions/catalog";
 import { AdminFormModal } from "@/components/admin/form-modal";
+import { ImageUploadField } from "@/components/admin/image-upload-field";
 import {
   Badge,
   Button,
@@ -64,6 +65,11 @@ export default async function AdminCollectionsPage() {
                 <div className="sm:col-span-2">
                   <Field label="Description">
                     <Textarea name="description" />
+                  </Field>
+                </div>
+                <div className="sm:col-span-2">
+                  <Field label="Collection image (Cloudinary)">
+                    <ImageUploadField name="imageUrl" folder="collections" />
                   </Field>
                 </div>
                 <Button type="submit" className="sm:col-span-2">

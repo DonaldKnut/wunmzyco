@@ -243,9 +243,81 @@ export async function clearCart(): Promise<void> {
   try {
     const cartId = await getOrCreateCartId();
     if (!cartId) return;
-    await prisma.cartItem.deleteMany({ where: { cartId } });
+    await clearCartById(cartId);
   } catch {
     // ignore — order already placed
+  }
+}
+
+/** Clear a known cart (e.g. after Paystack webhook confirms payment). */
+export async function clearCartById(cartId: string): Promise<void> {
+  try {
+    await prisma.cartItem.deleteMany({ where: { cartId } });
+  } catch {
+    // ignore
+  }
+}
+
+/**
+ * Rebuild the shopper's bag from a cancelled/abandoned order so they can
+ * retry checkout without re-picking every item. Skips lines whose product
+ * is gone; uses max(existing, order qty) when the line is already in cart.
+ */
+export async function restoreCartFromOrder(orderId: string): Promise<{ restored: number }> {
+  try {
+    const order = await prisma.order.findUnique({
+      where: { id: orderId },
+      include: {
+        items: {
+          select: { productId: true, variantId: true, quantity: true },
+        },
+      },
+    });
+    if (!order?.items.length) return { restored: 0 };
+
+    const cartId = await getOrCreateCartId();
+    if (!cartId) return { restored: 0 };
+
+    let restored = 0;
+    for (const line of order.items) {
+      if (!line.productId) continue;
+      const product = await prisma.product.findFirst({
+        where: { id: line.productId, status: "PUBLISHED" },
+        select: { id: true },
+      });
+      if (!product) continue;
+
+      const existing = await prisma.cartItem.findFirst({
+        where: {
+          cartId,
+          productId: line.productId,
+          variantId: line.variantId,
+        },
+      });
+
+      if (existing) {
+        if (existing.quantity < line.quantity) {
+          await prisma.cartItem.update({
+            where: { id: existing.id },
+            data: { quantity: line.quantity },
+          });
+        }
+      } else {
+        await prisma.cartItem.create({
+          data: {
+            cartId,
+            productId: line.productId,
+            variantId: line.variantId,
+            quantity: line.quantity,
+          },
+        });
+      }
+      restored += 1;
+    }
+
+    return { restored };
+  } catch {
+    return { restored: 0 };
   }
 }
 

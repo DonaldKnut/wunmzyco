@@ -1,6 +1,3 @@
-import { redirect } from "next/navigation";
-import { getSessionUser } from "@/lib/auth/session";
-import { isStaffRole } from "@/lib/permissions";
 import { safeAdminPath } from "@/lib/auth/flash";
 import { LoginForm } from "@/components/storefront/auth-forms";
 import { AuthShell } from "@/components/storefront/auth-shell";
@@ -11,12 +8,7 @@ export default async function LoginPage({ searchParams }: PageProps<"/login">) {
   const params = await searchParams;
   const nextRaw = typeof params.next === "string" ? params.next : undefined;
   const next = safeAdminPath(nextRaw);
-
-  const user = await getSessionUser();
-  if (user) {
-    if (isStaffRole(user.role)) redirect(next);
-    redirect("/");
-  }
+  // Signed-in redirect is handled in (auth)/layout.tsx
 
   return (
     <AuthShell showMobilePromo>

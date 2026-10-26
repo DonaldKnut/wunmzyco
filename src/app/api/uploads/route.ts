@@ -3,7 +3,14 @@ import { requireStaff } from "@/lib/auth/session";
 import { hasPermission } from "@/lib/permissions";
 import { uploadImage, type UploadFolder } from "@/lib/storage";
 
-const FOLDERS = new Set<UploadFolder>(["products", "homepage", "misc"]);
+const FOLDERS = new Set<UploadFolder>([
+  "products",
+  "homepage",
+  "categories",
+  "collections",
+  "branding",
+  "misc",
+]);
 
 export async function POST(request: Request) {
   let staff;
