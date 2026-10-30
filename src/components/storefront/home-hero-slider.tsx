@@ -3,23 +3,28 @@
 import { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { ArrowRight, Sparkles, ChevronLeft, ChevronRight, ShieldCheck } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { ArrowRight, ChevronLeft, ChevronRight, ShieldCheck } from "lucide-react";
 import { BRAND } from "@/lib/brand";
 import type { HomepageSlideView } from "@/lib/store/homepage";
 import { cn } from "@/lib/utils";
+
+type HomeHeroSliderProps = {
+  slides: HomepageSlideView[];
+  fallbackTitle?: string;
+  fallbackSubtitle?: string;
+  fallbackTagline?: string;
+  fallbackImageUrl?: string | null;
+  fallbackImageAlt?: string;
+};
 
 export function HomeHeroSlider({
   slides,
   fallbackTitle,
   fallbackSubtitle,
   fallbackTagline,
-}: {
-  slides: HomepageSlideView[];
-  fallbackTitle?: string;
-  fallbackSubtitle?: string;
-  fallbackTagline?: string;
-}) {
+  fallbackImageUrl,
+  fallbackImageAlt,
+}: HomeHeroSliderProps) {
   const items =
     slides.length > 0
       ? slides
@@ -31,8 +36,8 @@ export function HomeHeroSlider({
             subtitle: fallbackSubtitle || BRAND.homepageHeroSubtitle,
             ctaLabel: "Shop the edit",
             ctaHref: "/shop",
-            imageUrl: BRAND.brandCardUrl,
-            imageAlt: BRAND.storeName,
+            imageUrl: fallbackImageUrl || BRAND.brandCardUrl,
+            imageAlt: fallbackImageAlt || BRAND.storeName,
             tone: "from-[#fbf9f5] via-[#f4efe7] to-[#e8e0d2]",
           } satisfies HomepageSlideView,
         ];
@@ -46,216 +51,137 @@ export function HomeHeroSlider({
   }, [items.length]);
 
   const slide = items[Math.min(index, items.length - 1)]!;
-  const hasImage = Boolean(slide.imageUrl && slide.imageUrl !== BRAND.brandCardUrl);
-
+  const isBrandCard = slide.imageUrl === BRAND.brandCardUrl;
   const prev = () => setIndex((i) => (i === 0 ? items.length - 1 : i - 1));
   const next = () => setIndex((i) => (i + 1) % items.length);
 
   return (
-    <section
-      className={cn(
-        "relative overflow-hidden border-b border-[#e8e2d7] transition-all duration-1000",
-        hasImage ? "bg-[#0e0d0c]" : cn("bg-gradient-to-br", slide.tone || "from-[#fbf9f5] via-[#f5efe5] to-[#ebe1d3]"),
-      )}
-    >
-      {/* Ambient decorative lighting */}
-      {hasImage ? (
-        <div className="absolute inset-0">
-          <Image
-            key={slide.imageUrl}
-            src={slide.imageUrl!}
-            alt={slide.imageAlt || slide.title}
-            fill
-            priority
-            className="object-cover transition-transform duration-1000 scale-105"
-            unoptimized={slide.imageUrl!.startsWith("/")}
-            sizes="100vw"
-          />
-          <div className="absolute inset-0 bg-gradient-to-r from-black/85 via-black/60 to-black/30 backdrop-blur-[2px]" />
-          <div className="absolute inset-0 bg-radial from-transparent via-transparent to-black/70" />
-        </div>
-      ) : (
-        <div className="pointer-events-none absolute inset-0 overflow-hidden">
-          <div className="absolute -right-[15%] -top-[25%] h-[80%] w-[65%] rounded-full bg-gradient-to-br from-[#d4af37]/15 to-transparent blur-3xl" />
-          <div className="absolute -left-[10%] bottom-[-10%] h-[60%] w-[50%] rounded-full bg-gradient-to-tr from-[#b38e5d]/10 to-transparent blur-3xl" />
-        </div>
-      )}
-
-      <div className="relative mx-auto flex min-h-[580px] max-w-7xl flex-col justify-center px-4 py-20 sm:px-6 lg:min-h-[640px] lg:flex-row lg:items-center lg:justify-between lg:py-24">
-        {/* Editorial Text Column */}
-        <div className="max-w-2xl space-y-7 z-10" key={slide.id}>
-          {/* High-fashion badge pill */}
-          <div className="inline-flex items-center gap-2 rounded-full border border-[#d4af37]/40 bg-card/60 px-4 py-1.5 backdrop-blur-md shadow-xs animate-fade-up">
-            <Sparkles className="h-3.5 w-3.5 text-[#d4af37]" />
-            <span className="text-[11px] font-semibold uppercase tracking-[0.22em] text-foreground">
-              {slide.eyebrow || fallbackTagline || BRAND.tagline}
-            </span>
+    <section className="overflow-hidden border-b border-[#e8e2d7] bg-[#f7f4ee]">
+      <div className="mx-auto grid max-w-7xl items-center gap-10 px-4 py-12 sm:px-6 sm:py-16 lg:min-h-[680px] lg:grid-cols-[1fr_0.88fr] lg:gap-16 lg:px-8 lg:py-16">
+        <div key={slide.id} className="animate-fade-up max-w-2xl lg:py-8">
+          <div className="mb-7 inline-flex items-center gap-3 text-[10px] font-semibold uppercase tracking-[0.24em] text-[#816b4d] sm:text-xs">
+            <span className="h-px w-8 bg-[#b38e5d]" />
+            {slide.eyebrow || fallbackTagline || BRAND.tagline}
           </div>
 
-          {/* Majestic Hero Headline */}
-          <h1
-            className={cn(
-              "animate-fade-up font-display text-5xl leading-[1.08] tracking-tight sm:text-6xl lg:text-7xl [animation-delay:80ms]",
-              hasImage ? "text-[#fbf9f5]" : "text-foreground",
-            )}
-          >
+          <h1 className="max-w-[11ch] font-display text-[clamp(3.75rem,7.2vw,6.6rem)] font-medium leading-[0.88] tracking-[-0.055em] text-[#191714]">
             {slide.title || fallbackTitle || BRAND.slogan}
           </h1>
 
-          {/* Subtitle with editorial rhythm */}
-          <p
-            className={cn(
-              "animate-fade-up max-w-xl text-base leading-relaxed sm:text-lg [animation-delay:140ms]",
-              hasImage ? "text-white/80" : "text-muted-foreground",
-            )}
-          >
+          <p className="mt-7 max-w-md text-sm leading-7 text-[#6b6459] sm:text-base sm:leading-8">
             {slide.subtitle || fallbackSubtitle || BRAND.homepageHeroSubtitle}
           </p>
 
-          {/* Occasion Tags Pill Strip */}
-          <div className="flex flex-wrap items-center gap-2 pt-1 animate-fade-up [animation-delay:180ms]">
-            <span className={cn("text-xs font-semibold uppercase tracking-widest", hasImage ? "text-white/50" : "text-muted-foreground/80")}>
-              Occasions:
-            </span>
-            {BRAND.occasions.map((occasion) => (
-              <Link
-                key={occasion}
-                href={`/shop?q=${occasion.toLowerCase()}`}
-                className={cn(
-                  "rounded-full px-3 py-1 text-xs font-medium tracking-wide transition-all duration-200",
-                  hasImage
-                    ? "border border-white/20 bg-white/10 text-white hover:border-[#d4af37] hover:text-[#d4af37]"
-                    : "border border-border/80 bg-card/70 text-foreground hover:border-[#d4af37] hover:bg-card",
-                )}
-              >
-                {occasion}
-              </Link>
+          <div className="mt-8 flex flex-wrap items-center gap-x-5 gap-y-2 text-[11px] font-medium uppercase tracking-[0.13em] text-[#746b5f]">
+            {BRAND.occasions.map((occasion, occasionIndex) => (
+              <span key={occasion} className="inline-flex items-center gap-5">
+                <Link
+                  href={`/shop?q=${occasion.toLowerCase()}`}
+                  className="transition-colors hover:text-[#191714]"
+                >
+                  {occasion}
+                </Link>
+                {occasionIndex < BRAND.occasions.length - 1 ? (
+                  <span aria-hidden="true" className="h-1 w-1 rounded-full bg-[#c4b8a5]" />
+                ) : null}
+              </span>
             ))}
           </div>
 
-          {/* Call to Actions */}
-          <div className="animate-fade-up flex flex-wrap items-center gap-4 pt-3 [animation-delay:220ms]">
-            <Button
-              asChild
-              size="lg"
-              className={cn(
-                "group relative overflow-hidden rounded-full px-7 py-6 text-xs uppercase tracking-[0.18em] shadow-md transition-all duration-300",
-                hasImage
-                  ? "bg-[#d4af37] text-[#121110] hover:bg-[#e6c354] hover:shadow-lg"
-                  : "bg-foreground text-background hover:bg-foreground/90",
-              )}
+          <div className="mt-10 flex flex-wrap items-center gap-6">
+            <Link
+              href={slide.ctaHref || "/shop"}
+              className="group inline-flex min-h-13 items-center justify-center gap-5 rounded-full bg-[#191714] px-7 text-[11px] font-semibold uppercase tracking-[0.17em] text-white transition-colors hover:bg-[#39352f] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#b38e5d]"
             >
-              <Link href={slide.ctaHref || "/shop"}>
-                <span>{slide.ctaLabel || "Shop the edit"}</span>
-                <ArrowRight className="ml-2 h-4 w-4 transition-transform duration-300 group-hover:translate-x-1" />
-              </Link>
-            </Button>
-
-            <Button
-              asChild
-              variant="outline"
-              size="lg"
-              className={cn(
-                "rounded-full px-6 py-6 text-xs uppercase tracking-[0.18em] transition-all duration-300",
-                hasImage
-                  ? "border-white/30 bg-white/5 text-white backdrop-blur-sm hover:border-white hover:bg-white/15"
-                  : "border-border/90 bg-card/60 backdrop-blur-sm hover:bg-card hover:border-foreground/40",
-              )}
+              {slide.ctaLabel || "Shop the edit"}
+              <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
+            </Link>
+            <Link
+              href="/about"
+              className="text-[11px] font-semibold uppercase tracking-[0.15em] text-[#595248] underline decoration-[#c4b8a5] underline-offset-4 transition-colors hover:text-[#191714]"
             >
-              <Link href="/about">Our Philosophy</Link>
-            </Button>
+              Our philosophy
+            </Link>
           </div>
-        </div>
 
-        {/* Brand Card / Visual Feature Showcase */}
-        {!hasImage ? (
-          <div className="relative mt-12 flex w-full max-w-md flex-col justify-end lg:mt-0 lg:max-w-md z-10">
-            <div className="relative aspect-[4/5] w-full overflow-hidden rounded-2xl border border-white/60 bg-gradient-to-b from-white/90 to-white/40 p-6 shadow-2xl backdrop-blur-md">
-              <Image
-                src={BRAND.brandCardUrl}
-                alt={BRAND.storeName}
-                width={500}
-                height={620}
-                className="h-full w-full object-contain drop-shadow-md transition-transform duration-700 hover:scale-105"
-                priority
-              />
-
-              {/* Floating luxury status capsules */}
-              <div className="absolute bottom-5 left-5 right-5 flex items-center justify-between rounded-xl border border-white/60 bg-white/80 p-3.5 backdrop-blur-md shadow-lg">
-                <div className="flex items-center gap-2.5">
-                  <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[#121110] text-[#d4af37]">
-                    <Sparkles className="h-4 w-4" />
-                  </div>
-                  <div>
-                    <p className="text-xs font-semibold text-[#121110]">One-of-a-Kind Finds</p>
-                    <p className="text-[11px] text-muted-foreground">Handpicked Fashion Archives</p>
-                  </div>
-                </div>
-                <div className="text-right">
-                  <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2.5 py-0.5 text-[10px] font-semibold text-emerald-800">
-                    <ShieldCheck className="h-3 w-3" /> 100% Curated
-                  </span>
-                </div>
+          {items.length > 1 ? (
+            <div className="mt-12 flex items-center gap-4">
+              <div className="flex items-center gap-2">
+                {items.map((item, itemIndex) => (
+                  <button
+                    key={item.id}
+                    type="button"
+                    aria-label={`Go to slide ${itemIndex + 1}`}
+                    aria-current={itemIndex === index}
+                    onClick={() => setIndex(itemIndex)}
+                    className={cn(
+                      "h-1 rounded-full transition-all duration-300",
+                      itemIndex === index ? "w-8 bg-[#191714]" : "w-3 bg-[#cfc6b8] hover:bg-[#8b8173]",
+                    )}
+                  />
+                ))}
+              </div>
+              <div className="ml-1 flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={prev}
+                  aria-label="Previous slide"
+                  className="flex h-9 w-9 items-center justify-center rounded-full border border-[#d9d1c5] text-[#4c463d] transition-colors hover:border-[#191714] hover:text-[#191714]"
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                </button>
+                <button
+                  type="button"
+                  onClick={next}
+                  aria-label="Next slide"
+                  className="flex h-9 w-9 items-center justify-center rounded-full border border-[#d9d1c5] text-[#4c463d] transition-colors hover:border-[#191714] hover:text-[#191714]"
+                >
+                  <ChevronRight className="h-4 w-4" />
+                </button>
               </div>
             </div>
-          </div>
-        ) : null}
-      </div>
+          ) : null}
+        </div>
 
-      {/* Slide Navigation Controls */}
-      {items.length > 1 ? (
-        <div className="relative mx-auto flex max-w-7xl items-center justify-between px-4 pb-8 sm:px-6">
-          <div className="flex items-center gap-2">
-            {items.map((s, i) => (
-              <button
-                key={s.id}
-                type="button"
-                aria-label={`Go to slide ${i + 1}`}
-                onClick={() => setIndex(i)}
+        <div className="relative mx-auto w-full max-w-[500px] lg:ml-auto">
+          <div className="absolute -inset-3 rotate-2 border border-[#d9d1c5] sm:-inset-4" />
+          <div className="relative aspect-[4/5] overflow-hidden bg-[#e9e3d9]">
+            {slide.imageUrl ? (
+              <Image
+                key={slide.imageUrl}
+                src={slide.imageUrl}
+                alt={slide.imageAlt || slide.title}
+                fill
+                priority
                 className={cn(
-                  "h-1.5 rounded-full transition-all duration-300",
-                  i === index
-                    ? hasImage
-                      ? "w-10 bg-[#d4af37]"
-                      : "w-10 bg-foreground"
-                    : hasImage
-                      ? "w-3 bg-white/40 hover:bg-white/70"
-                      : "w-3 bg-foreground/20 hover:bg-foreground/50",
+                  "transition-transform duration-700 ease-out hover:scale-[1.025]",
+                  isBrandCard ? "object-contain p-5 sm:p-8" : "object-cover",
                 )}
+                unoptimized={slide.imageUrl.startsWith("/")}
+                sizes="(max-width: 1024px) 100vw, 42vw"
               />
-            ))}
+            ) : (
+              <div className="absolute inset-0 bg-gradient-to-br from-[#d6c5a6] via-[#bda98a] to-[#82715e]" />
+            )}
+
+            <div className="absolute inset-x-0 bottom-0 flex items-end justify-between bg-gradient-to-t from-black/50 to-transparent p-5 pt-20 sm:p-7 sm:pt-24">
+              <span className="inline-flex items-center gap-2 text-[10px] font-medium uppercase tracking-[0.17em] text-white">
+                <ShieldCheck className="h-4 w-4 text-[#ead6a1]" />
+                Handpicked with intention
+              </span>
+              <span className="font-display text-4xl italic leading-none text-white/85">W.</span>
+            </div>
           </div>
 
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={prev}
-              aria-label="Previous slide"
-              className={cn(
-                "flex h-9 w-9 items-center justify-center rounded-full border transition-all duration-200",
-                hasImage
-                  ? "border-white/30 text-white hover:border-white hover:bg-white/10"
-                  : "border-border bg-card/60 text-foreground hover:border-foreground hover:bg-card",
-              )}
-            >
-              <ChevronLeft className="h-4 w-4" />
-            </button>
-            <button
-              type="button"
-              onClick={next}
-              aria-label="Next slide"
-              className={cn(
-                "flex h-9 w-9 items-center justify-center rounded-full border transition-all duration-200",
-                hasImage
-                  ? "border-white/30 text-white hover:border-white hover:bg-white/10"
-                  : "border-border bg-card/60 text-foreground hover:border-foreground hover:bg-card",
-              )}
-            >
-              <ChevronRight className="h-4 w-4" />
-            </button>
+          <div className="absolute -bottom-5 -left-3 hidden items-center gap-3 border border-[#e6dfd4] bg-[#fbf9f5] px-4 py-3 shadow-[0_12px_35px_-20px_rgba(25,23,20,0.35)] sm:flex lg:-left-10">
+            <span className="font-display text-2xl italic text-[#9b805b]">01</span>
+            <span className="h-7 w-px bg-[#ded6ca]" />
+            <span className="text-[9px] font-semibold uppercase leading-4 tracking-[0.16em] text-[#62594d]">
+              Style for<br />every moment
+            </span>
           </div>
         </div>
-      ) : null}
+      </div>
     </section>
   );
 }

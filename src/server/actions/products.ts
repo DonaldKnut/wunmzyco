@@ -1,12 +1,13 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import type { ProductStatus } from "@prisma/client";
+import { Prisma, type ProductStatus } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { nairaToKobo } from "@/lib/currency";
 import { slugify } from "@/lib/utils";
 import { writeAuditLog } from "@/lib/audit";
 import { logger } from "@/lib/logger";
+import { generateUniqueProductSku } from "@/lib/products/sku";
 import { revalidateStorefront } from "@/lib/admin/revalidate-storefront";
 import { actionRequirePermission } from "@/server/actions/helpers";
 import { actionError, actionOk, type ActionResult } from "@/server/actions/result";
@@ -17,6 +18,8 @@ type ImageInput = {
   alt?: string;
   isCover?: boolean;
 };
+
+const PRODUCT_STATUSES = new Set<ProductStatus>(["DRAFT", "PUBLISHED", "ARCHIVED"]);
 
 function parseImagesJson(raw: FormDataEntryValue | null): ImageInput[] {
   if (!raw || typeof raw !== "string" || !raw.trim()) return [];
@@ -44,33 +47,83 @@ function parseImagesJson(raw: FormDataEntryValue | null): ImageInput[] {
   }
 }
 
-function parseProductForm(formData: FormData) {
+function friendlyPrismaError(error: unknown): string | null {
+  if (error instanceof Prisma.PrismaClientKnownRequestError) {
+    if (error.code === "P2002") {
+      const fields = Array.isArray(error.meta?.target)
+        ? (error.meta.target as string[]).join(", ")
+        : String(error.meta?.target ?? "field");
+      if (fields.includes("sku")) {
+        return "That product code (SKU) is already used. Try saving again — a new one will be generated.";
+      }
+      if (fields.includes("slug")) {
+        return "Another product already uses this URL slug. Change the slug or the product name and try again.";
+      }
+      return "This product conflicts with an existing one. Check the name, slug, or code and try again.";
+    }
+    if (error.code === "P2003") {
+      return "One of the categories you selected no longer exists. Refresh the page and pick again.";
+    }
+    if (error.code === "P2025") {
+      return "That product could not be found. It may have been deleted.";
+    }
+  }
+  return null;
+}
+
+async function ensureUniqueSlug(base: string, excludeProductId?: string): Promise<string> {
+  const root = slugify(base) || `product-${Date.now().toString(36)}`;
+  let candidate = root;
+  for (let i = 0; i < 20; i++) {
+    const existing = await prisma.product.findUnique({
+      where: { slug: candidate },
+      select: { id: true },
+    });
+    if (!existing || (excludeProductId && existing.id === excludeProductId)) {
+      return candidate;
+    }
+    candidate = `${root}-${i + 2}`;
+  }
+  return `${root}-${randomSuffix()}`;
+}
+
+function randomSuffix(): string {
+  return Math.random().toString(36).slice(2, 7);
+}
+
+function parseProductForm(formData: FormData, opts?: { requireSku?: boolean }) {
   const name = String(formData.get("name") ?? "").trim();
   const description = String(formData.get("description") ?? "").trim();
-  const sku = String(formData.get("sku") ?? "").trim();
+  const skuRaw = String(formData.get("sku") ?? "").trim();
   const slugRaw = String(formData.get("slug") ?? "").trim();
   const priceNaira = Number(formData.get("priceNaira"));
   const salePriceNairaRaw = String(formData.get("salePriceNaira") ?? "").trim();
   const stock = Number(formData.get("stock") ?? 0);
   const lowStockAt = Number(formData.get("lowStockAt") ?? 2);
-  const status = String(formData.get("status") ?? "DRAFT") as ProductStatus;
+  const statusRaw = String(formData.get("status") ?? "DRAFT");
   const isFeatured = formData.get("isFeatured") === "on";
-  const categoryIds = formData.getAll("categoryIds").map(String);
+  const categoryIds = [...new Set(formData.getAll("categoryIds").map(String).filter(Boolean))];
   const images = parseImagesJson(formData.get("imagesJson"));
 
-  if (!name || !description || !sku) {
-    throw new Error("Name, description, and SKU are required.");
-  }
+  if (!name) throw new Error("Please enter a product name.");
+  if (!description) throw new Error("Please add a short description so shoppers know what they’re buying.");
+  if (opts?.requireSku && !skuRaw) throw new Error("Product code (SKU) is missing.");
   if (!Number.isFinite(priceNaira) || priceNaira < 0) {
-    throw new Error("Invalid price.");
+    throw new Error("Please enter a valid price in naira.");
   }
 
-  const slug = slugRaw ? slugify(slugRaw) : slugify(name);
-  const priceKobo = nairaToKobo(priceNaira);
-  const salePriceKobo =
-    salePriceNairaRaw !== ""
-      ? nairaToKobo(Number(salePriceNairaRaw))
-      : null;
+  let salePriceKobo: number | null = null;
+  if (salePriceNairaRaw !== "") {
+    const saleNaira = Number(salePriceNairaRaw);
+    if (!Number.isFinite(saleNaira) || saleNaira < 0) {
+      throw new Error("Sale price looks invalid. Leave it blank or enter a number.");
+    }
+    salePriceKobo = nairaToKobo(saleNaira);
+  }
+
+  const status = (PRODUCT_STATUSES.has(statusRaw as ProductStatus)
+    ? statusRaw
+    : "DRAFT") as ProductStatus;
 
   const coverIndex = Math.max(
     0,
@@ -80,12 +133,12 @@ function parseProductForm(formData: FormData) {
   return {
     name,
     description,
-    sku,
-    slug,
-    priceKobo,
+    sku: skuRaw || null,
+    slugRaw,
+    priceKobo: nairaToKobo(priceNaira),
     salePriceKobo,
-    stock: Math.max(0, Math.floor(stock)),
-    lowStockAt: Math.max(0, Math.floor(lowStockAt)),
+    stock: Math.max(0, Math.floor(Number.isFinite(stock) ? stock : 0)),
+    lowStockAt: Math.max(0, Math.floor(Number.isFinite(lowStockAt) ? lowStockAt : 2)),
     status,
     isFeatured,
     categoryIds,
@@ -99,17 +152,29 @@ function parseProductForm(formData: FormData) {
   };
 }
 
+async function filterValidCategoryIds(categoryIds: string[]): Promise<string[]> {
+  if (!categoryIds.length) return [];
+  const rows = await prisma.category.findMany({
+    where: { id: { in: categoryIds } },
+    select: { id: true },
+  });
+  return rows.map((r) => r.id);
+}
+
 export async function createProduct(formData: FormData): Promise<ActionResult<{ id: string }>> {
   try {
     const user = await actionRequirePermission("products:write");
-    const data = parseProductForm(formData);
+    const data = parseProductForm(formData, { requireSku: false });
+    const sku = await generateUniqueProductSku();
+    const slug = await ensureUniqueSlug(data.slugRaw || data.name);
+    const categoryIds = await filterValidCategoryIds(data.categoryIds);
 
     const product = await prisma.product.create({
       data: {
         name: data.name,
-        slug: data.slug,
+        slug,
         description: data.description,
-        sku: data.sku,
+        sku,
         priceKobo: data.priceKobo,
         salePriceKobo: data.salePriceKobo,
         stock: data.stock,
@@ -118,7 +183,7 @@ export async function createProduct(formData: FormData): Promise<ActionResult<{ 
         isFeatured: data.isFeatured,
         publishedAt: data.status === "PUBLISHED" ? new Date() : null,
         categories: {
-          create: data.categoryIds.map((categoryId) => ({ categoryId })),
+          create: categoryIds.map((categoryId) => ({ categoryId })),
         },
         images: {
           create: data.images.map((img) => ({
@@ -142,9 +207,13 @@ export async function createProduct(formData: FormData): Promise<ActionResult<{ 
     revalidateStorefront({ productSlug: product.slug });
     return actionOk({ id: product.id });
   } catch (e) {
-    const msg = e instanceof Error ? e.message : "Failed to create product";
+    const prismaMsg = friendlyPrismaError(e);
+    const msg = prismaMsg ?? (e instanceof Error ? e.message : "Failed to create product");
     if (msg === "FORBIDDEN") return actionError("You do not have permission.");
-    logger.error("create_product_failed", { error: msg });
+    logger.error("create_product_failed", {
+      error: e instanceof Error ? e.message : String(e),
+      code: e instanceof Prisma.PrismaClientKnownRequestError ? e.code : undefined,
+    });
     return actionError(msg);
   }
 }
@@ -155,7 +224,12 @@ export async function updateProduct(
 ): Promise<ActionResult> {
   try {
     const user = await actionRequirePermission("products:write");
-    const data = parseProductForm(formData);
+    const data = parseProductForm(formData, { requireSku: true });
+    const sku = data.sku;
+    if (!sku) return actionError("Product code (SKU) is missing.");
+
+    const slug = await ensureUniqueSlug(data.slugRaw || data.name, productId);
+    const categoryIds = await filterValidCategoryIds(data.categoryIds);
 
     await prisma.$transaction(async (tx) => {
       await tx.productCategory.deleteMany({ where: { productId } });
@@ -164,9 +238,9 @@ export async function updateProduct(
         where: { id: productId },
         data: {
           name: data.name,
-          slug: data.slug,
+          slug,
           description: data.description,
-          sku: data.sku,
+          sku,
           priceKobo: data.priceKobo,
           salePriceKobo: data.salePriceKobo,
           stock: data.stock,
@@ -180,7 +254,7 @@ export async function updateProduct(
                 ? null
                 : undefined,
           categories: {
-            create: data.categoryIds.map((categoryId) => ({ categoryId })),
+            create: categoryIds.map((categoryId) => ({ categoryId })),
           },
           images: {
             create: data.images.map((img) => ({
@@ -202,11 +276,16 @@ export async function updateProduct(
       entityId: productId,
     });
     revalidatePath("/admin/products");
-    revalidateStorefront({ productSlug: data.slug });
+    revalidateStorefront({ productSlug: slug });
     return actionOk();
   } catch (e) {
-    const msg = e instanceof Error ? e.message : "Failed to update product";
+    const prismaMsg = friendlyPrismaError(e);
+    const msg = prismaMsg ?? (e instanceof Error ? e.message : "Failed to update product");
     if (msg === "FORBIDDEN") return actionError("You do not have permission.");
+    logger.error("update_product_failed", {
+      error: e instanceof Error ? e.message : String(e),
+      productId,
+    });
     return actionError(msg);
   }
 }

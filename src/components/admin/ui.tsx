@@ -345,10 +345,39 @@ export function Label({
   );
 }
 
-export function Field({ label, children }: { label: string; children: React.ReactNode }) {
+export function Field({
+  label,
+  hint,
+  children,
+}: {
+  label: string;
+  /** Plain-language tip shown on hover of the ? icon. */
+  hint?: string;
+  children: React.ReactNode;
+}) {
   return (
     <div className="space-y-1.5">
-      <Label>{label}</Label>
+      <div className="flex items-center gap-1.5">
+        <Label>{label}</Label>
+        {hint ? (
+          <span className="group relative inline-flex shrink-0">
+            <button
+              type="button"
+              className="inline-flex h-4 w-4 items-center justify-center rounded-full border border-[#cfc8bc] bg-[#f7f3ec] text-[10px] font-bold leading-none text-[#6b6459] hover:border-[#a89f8e] hover:text-[#1a1a18]"
+              aria-label={`Help: ${label}`}
+            >
+              ?
+            </button>
+            <span
+              role="tooltip"
+              className="pointer-events-none absolute bottom-full left-1/2 z-30 mb-2 w-56 -translate-x-1/2 rounded-md border border-[#e8e2d7] bg-[#1a1a18] px-2.5 py-2 text-[11px] font-normal normal-case tracking-normal text-[#f7f3ec] opacity-0 shadow-lg transition-opacity duration-150 group-hover:opacity-100 group-focus-within:opacity-100"
+            >
+              {hint}
+              <span className="absolute left-1/2 top-full -mt-px -translate-x-1/2 border-4 border-transparent border-t-[#1a1a18]" />
+            </span>
+          </span>
+        ) : null}
+      </div>
       {children}
     </div>
   );

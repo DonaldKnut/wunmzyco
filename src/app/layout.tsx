@@ -1,20 +1,21 @@
 import type { Metadata } from "next";
-import { Cormorant_Garamond, DM_Sans } from "next/font/google";
+import { Bodoni_Moda, Manrope } from "next/font/google";
 import { FlashToast } from "@/components/providers/flash-toast";
 import { ToasterProvider } from "@/components/providers/toaster-provider";
 import { WhatsAppChat } from "@/components/storefront/whatsapp-chat";
 import "./globals.css";
 
-const cormorant = Cormorant_Garamond({
-  variable: "--font-cormorant",
+const bodoniModa = Bodoni_Moda({
+  variable: "--font-bodoni-moda",
   subsets: ["latin"],
   weight: ["400", "500", "600"],
+  style: ["normal", "italic"],
 });
 
-const dmSans = DM_Sans({
-  variable: "--font-dm-sans",
+const manrope = Manrope({
+  variable: "--font-manrope",
   subsets: ["latin"],
-  weight: ["400", "500", "600"],
+  weight: ["400", "500", "600", "700"],
 });
 
 export const metadata: Metadata = {
@@ -32,7 +33,7 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="en" className={`${cormorant.variable} ${dmSans.variable} h-full antialiased`}>
+    <html lang="en" className={`${bodoniModa.variable} ${manrope.variable} h-full antialiased`}>
       <body className="min-h-full flex flex-col font-sans">
         {children}
         <WhatsAppChat />

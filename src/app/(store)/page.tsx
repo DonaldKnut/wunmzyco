@@ -36,6 +36,8 @@ export default async function HomePage() {
         fallbackTitle={settings.homepageHeroTitle}
         fallbackSubtitle={settings.homepageHeroSubtitle}
         fallbackTagline={settings.tagline}
+        fallbackImageUrl={products[0]?.coverImage?.url}
+        fallbackImageAlt={products[0]?.coverImage?.alt ?? products[0]?.name}
       />
 
       {/* 2. Infinite Fashion Ticker */}
