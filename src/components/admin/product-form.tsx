@@ -80,6 +80,7 @@ export function ProductForm({
   }
 
   function removeImage(index: number) {
+    const target = images[index];
     setImages((prev) => {
       const next = prev.filter((_, i) => i !== index);
       if (next.length && !next.some((img) => img.isCover)) {
@@ -87,6 +88,17 @@ export function ProductForm({
       }
       return next;
     });
+    toast.success("Image removed");
+    // Best-effort Cloudinary cleanup — form save still drops it from the product.
+    if (target?.publicId) {
+      void fetch("/api/uploads", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ publicId: target.publicId }),
+      }).catch(() => {
+        /* ignore network failures; product save is source of truth */
+      });
+    }
   }
 
   function setCover(index: number) {
@@ -230,7 +242,7 @@ export function ProductForm({
 
       <Field
         label="Product images"
-        hint="Upload clear photos of the actual item. The cover image is the main photo in the shop grid. Good photos reduce returns and build trust."
+        hint="Upload clear photos of the actual item. Use Remove on any photo you don’t want. The cover image is the main photo in the shop grid."
       >
         <div className="space-y-3 rounded-md border border-[#d8d3c8] bg-white p-3">
           {images.length > 0 ? (
@@ -238,7 +250,7 @@ export function ProductForm({
               {images.map((img, index) => (
                 <li
                   key={`${img.url}-${index}`}
-                  className="group relative overflow-hidden rounded-md border border-[#e8e4dc]"
+                  className="relative overflow-hidden rounded-md border border-[#e8e4dc]"
                 >
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
@@ -246,54 +258,74 @@ export function ProductForm({
                     alt={img.alt || ""}
                     className="aspect-square w-full object-cover"
                   />
-                  <div className="absolute inset-x-0 bottom-0 flex gap-1 bg-[#111]/70 p-1 opacity-0 transition group-hover:opacity-100">
+                  <button
+                    type="button"
+                    onClick={() => removeImage(index)}
+                    disabled={pending}
+                    className="absolute right-1.5 top-1.5 inline-flex h-8 w-8 items-center justify-center rounded-full bg-[#8b3a3a] text-white shadow-md ring-2 ring-white hover:bg-[#6f2424] disabled:opacity-50"
+                    title="Remove this photo"
+                    aria-label="Remove this photo"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </button>
+                  {img.isCover ? (
+                    <span className="absolute left-1.5 top-1.5 rounded bg-[#1a1a18] px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-white">
+                      Cover
+                    </span>
+                  ) : null}
+                  <div className="absolute inset-x-0 bottom-0 flex gap-1 bg-gradient-to-t from-[#111]/80 to-transparent p-1.5 pt-6">
                     <button
                       type="button"
                       onClick={() => setCover(index)}
-                      className="inline-flex h-7 flex-1 items-center justify-center gap-1 rounded bg-white/90 text-[10px] font-medium text-[#1a1a18]"
-                      title="Set as cover"
+                      disabled={pending || img.isCover}
+                      className="inline-flex h-7 flex-1 items-center justify-center gap-1 rounded bg-white/95 text-[10px] font-medium text-[#1a1a18] disabled:opacity-70"
+                      title="Use as main shop photo"
                     >
                       <Star className={`h-3 w-3 ${img.isCover ? "fill-current" : ""}`} />
-                      Cover
+                      {img.isCover ? "Main photo" : "Set as cover"}
                     </button>
                     <button
                       type="button"
                       onClick={() => removeImage(index)}
-                      className="inline-flex h-7 w-7 items-center justify-center rounded bg-white/90 text-[#8b3a3a]"
-                      title="Remove"
+                      disabled={pending}
+                      className="inline-flex h-7 items-center gap-1 rounded bg-white/95 px-2 text-[10px] font-medium text-[#8b3a3a]"
+                      title="Remove this photo"
                     >
                       <Trash2 className="h-3 w-3" />
+                      Remove
                     </button>
                   </div>
-                  {img.isCover ? (
-                    <span className="absolute left-1 top-1 rounded bg-[#1a1a18] px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-white">
-                      Cover
-                    </span>
-                  ) : null}
                 </li>
               ))}
             </ul>
           ) : (
             <div className="flex flex-col items-center justify-center gap-2 rounded-md border border-dashed border-[#d8d3c8] bg-[#faf8f5] px-4 py-8 text-center">
               <ImagePlus className="h-6 w-6 text-[#7a776f]" />
-              <p className="text-xs text-[#5c5a54]">Upload photos — stored on Cloudinary.</p>
+              <p className="text-xs text-[#5c5a54]">Upload photos — you can remove any you don’t need.</p>
             </div>
           )}
-          <label className="inline-flex cursor-pointer items-center gap-2 rounded-md border border-[#d8d3c8] bg-[#faf8f5] px-3 py-2 text-xs font-medium text-[#1a1a18] hover:bg-[#f0ebe3]">
-            <Upload className="h-3.5 w-3.5" />
-            {uploading ? "Uploading…" : "Upload image"}
-            <input
-              type="file"
-              accept="image/jpeg,image/png,image/webp,image/gif"
-              className="sr-only"
-              disabled={uploading || pending}
-              onChange={(e) => {
-                const file = e.target.files?.[0];
-                if (file) void onUpload(file);
-                e.target.value = "";
-              }}
-            />
-          </label>
+          <div className="flex flex-wrap items-center gap-2">
+            <label className="inline-flex cursor-pointer items-center gap-2 rounded-md border border-[#d8d3c8] bg-[#faf8f5] px-3 py-2 text-xs font-medium text-[#1a1a18] hover:bg-[#f0ebe3]">
+              <Upload className="h-3.5 w-3.5" />
+              {uploading ? "Uploading…" : "Upload image"}
+              <input
+                type="file"
+                accept="image/jpeg,image/png,image/webp,image/gif"
+                className="sr-only"
+                disabled={uploading || pending}
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) void onUpload(file);
+                  e.target.value = "";
+                }}
+              />
+            </label>
+            {images.length > 0 ? (
+              <p className="text-[11px] text-[#7a776f]">
+                Tap <strong>Remove</strong> on a photo to drop it. Save the product to keep the change.
+              </p>
+            ) : null}
+          </div>
         </div>
       </Field>
 

@@ -25,6 +25,7 @@ export function ImageUploadField({
   previewClassName?: string;
 }) {
   const [url, setUrl] = React.useState(defaultValue ?? "");
+  const [publicId, setPublicId] = React.useState("");
   const [uploading, setUploading] = React.useState(false);
 
   async function onUpload(file: File) {
@@ -43,11 +44,28 @@ export function ImageUploadField({
         throw new Error(json.error ?? "Upload failed");
       }
       setUrl(json.data.url);
+      setPublicId(json.data.publicId ?? "");
       toast.success("Image uploaded to Cloudinary");
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Upload failed");
     } finally {
       setUploading(false);
+    }
+  }
+
+  function removeImage() {
+    const id = publicId;
+    setUrl("");
+    setPublicId("");
+    toast.success("Image removed");
+    if (id) {
+      void fetch("/api/uploads", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ publicId: id }),
+      }).catch(() => {
+        /* ignore */
+      });
     }
   }
 
@@ -78,9 +96,9 @@ export function ImageUploadField({
         {url ? (
           <button
             type="button"
-            onClick={() => setUrl("")}
+            onClick={removeImage}
             disabled={disabled || uploading}
-            className="inline-flex h-9 items-center gap-1 text-xs text-[#6f2424] underline-offset-2 hover:underline disabled:opacity-50"
+            className="inline-flex h-9 items-center gap-1 rounded-md border border-[#e4c9c9] bg-[#fdf6f6] px-3 text-xs font-medium text-[#6f2424] hover:bg-[#f8eaea] disabled:opacity-50"
           >
             <X className="h-3.5 w-3.5" />
             Remove
@@ -96,6 +114,16 @@ export function ImageUploadField({
         >
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src={url} alt="" className="h-full w-full object-cover" />
+          <button
+            type="button"
+            onClick={removeImage}
+            disabled={disabled || uploading}
+            className="absolute right-2 top-2 inline-flex h-8 w-8 items-center justify-center rounded-full bg-[#8b3a3a] text-white shadow ring-2 ring-white hover:bg-[#6f2424] disabled:opacity-50"
+            aria-label="Remove image"
+            title="Remove image"
+          >
+            <X className="h-3.5 w-3.5" />
+          </button>
         </div>
       ) : (
         <p className="text-xs text-[#7a776f]">No image — uploads go to Cloudinary.</p>

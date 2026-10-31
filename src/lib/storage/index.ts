@@ -151,3 +151,38 @@ export async function uploadImage(
 export async function uploadProductImage(file: File): Promise<UploadedImage> {
   return uploadImage(file, "products");
 }
+
+/** Delete an image from Cloudinary by public_id. No-ops if publicId is empty. */
+export async function deleteImage(publicId: string): Promise<void> {
+  const id = publicId.trim();
+  if (!id) return;
+
+  const { cloudName, apiKey, apiSecret } = requireCloudinaryConfig();
+  const timestamp = Math.floor(Date.now() / 1000);
+  const toSign = `public_id=${id}&timestamp=${timestamp}${apiSecret}`;
+  const signature = createHash("sha1").update(toSign).digest("hex");
+
+  const form = new FormData();
+  form.append("public_id", id);
+  form.append("api_key", apiKey);
+  form.append("timestamp", String(timestamp));
+  form.append("signature", signature);
+
+  const res = await fetch(
+    `https://api.cloudinary.com/v1_1/${cloudName}/image/destroy`,
+    { method: "POST", body: form },
+  );
+
+  if (!res.ok) {
+    let detail = "";
+    try {
+      const errJson = (await res.json()) as { error?: { message?: string } };
+      detail = errJson.error?.message ?? "";
+    } catch {
+      detail = "";
+    }
+    throw new Error(
+      detail ? `Could not delete image: ${detail}` : `Could not delete image (${res.status})`,
+    );
+  }
+}
