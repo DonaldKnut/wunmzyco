@@ -7,7 +7,7 @@ import { ImagePlus, Star, Trash2, Upload } from "lucide-react";
 import { toast } from "sonner";
 import { koboToNaira } from "@/lib/currency";
 import { createProduct, updateProduct } from "@/server/actions/products";
-import { Button, Field, Input, Select, Textarea } from "@/components/admin/ui";
+import { Button, Field, FieldHelp, Input, Select, Textarea } from "@/components/admin/ui";
 
 type ProductWithRelations = Product & {
   categories: { categoryId: string }[];
@@ -47,31 +47,55 @@ export function ProductForm({
   const selected = new Set(product?.categories.map((c) => c.categoryId) ?? []);
   const isEdit = Boolean(product);
 
-  async function onUpload(file: File) {
+  async function onUploadFiles(fileList: FileList | File[]) {
+    const incoming = Array.from(fileList).filter((f) => f.type.startsWith("image/"));
+    if (!incoming.length) {
+      toast.error("Please choose image files (JPEG, PNG, WebP, or GIF).");
+      return;
+    }
+
+    const room = Math.max(0, 12 - images.length);
+    if (room === 0) {
+      toast.error("You can add up to 12 photos per product.");
+      return;
+    }
+    const files = incoming.slice(0, room);
+    if (incoming.length > room) {
+      toast.message(`Only ${room} more photo${room === 1 ? "" : "s"} can be added (max 12).`);
+    }
+
     setUploading(true);
+    let uploaded = 0;
     try {
-      const body = new FormData();
-      body.append("file", file);
-      body.append("folder", "products");
-      const res = await fetch("/api/uploads", { method: "POST", body });
-      const json = (await res.json()) as {
-        ok?: boolean;
-        data?: { url: string; publicId: string };
-        error?: string;
-      };
-      if (!res.ok || !json.data?.url) {
-        throw new Error(json.error ?? "Upload failed");
+      for (const file of files) {
+        const body = new FormData();
+        body.append("file", file);
+        body.append("folder", "products");
+        const res = await fetch("/api/uploads", { method: "POST", body });
+        const json = (await res.json()) as {
+          ok?: boolean;
+          data?: { url: string; publicId: string };
+          error?: string;
+        };
+        if (!res.ok || !json.data?.url) {
+          throw new Error(json.error ?? `Could not upload ${file.name}`);
+        }
+        const uploadedUrl = json.data.url;
+        const uploadedPublicId = json.data.publicId;
+        setImages((prev) => [
+          ...prev,
+          {
+            url: uploadedUrl,
+            publicId: uploadedPublicId,
+            alt: "",
+            isCover: prev.length === 0,
+          },
+        ]);
+        uploaded += 1;
       }
-      setImages((prev) => [
-        ...prev,
-        {
-          url: json.data!.url,
-          publicId: json.data!.publicId,
-          alt: "",
-          isCover: prev.length === 0,
-        },
-      ]);
-      toast.success("Image uploaded");
+      toast.success(
+        uploaded === 1 ? "Image uploaded" : `${uploaded} images uploaded`,
+      );
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Upload failed");
     } finally {
@@ -102,7 +126,14 @@ export function ProductForm({
   }
 
   function setCover(index: number) {
-    setImages((prev) => prev.map((img, i) => ({ ...img, isCover: i === index })));
+    setImages((prev) => {
+      const marked = prev.map((img, i) => ({ ...img, isCover: i === index }));
+      // Keep cover first so shop cards open on the chosen photo.
+      const cover = marked[index];
+      if (!cover) return marked;
+      return [cover, ...marked.filter((_, i) => i !== index)];
+    });
+    toast.success("Cover photo updated");
   }
 
   function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
@@ -242,7 +273,7 @@ export function ProductForm({
 
       <Field
         label="Product images"
-        hint="Upload clear photos of the actual item. Use Remove on any photo you don’t want. The cover image is the main photo in the shop grid."
+        hint="Select several photos at once if you like. Remove any you don’t want. Use Set as cover for the main shop photo — shoppers can swipe the rest on product cards."
       >
         <div className="space-y-3 rounded-md border border-[#d8d3c8] bg-white p-3">
           {images.length > 0 ? (
@@ -250,7 +281,11 @@ export function ProductForm({
               {images.map((img, index) => (
                 <li
                   key={`${img.url}-${index}`}
-                  className="relative overflow-hidden rounded-md border border-[#e8e4dc]"
+                  className={
+                    img.isCover
+                      ? "relative overflow-hidden rounded-md border-2 border-[#1a1a18]"
+                      : "relative overflow-hidden rounded-md border border-[#e8e4dc]"
+                  }
                 >
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
@@ -261,7 +296,7 @@ export function ProductForm({
                   <button
                     type="button"
                     onClick={() => removeImage(index)}
-                    disabled={pending}
+                    disabled={pending || uploading}
                     className="absolute right-1.5 top-1.5 inline-flex h-8 w-8 items-center justify-center rounded-full bg-[#8b3a3a] text-white shadow-md ring-2 ring-white hover:bg-[#6f2424] disabled:opacity-50"
                     title="Remove this photo"
                     aria-label="Remove this photo"
@@ -277,7 +312,7 @@ export function ProductForm({
                     <button
                       type="button"
                       onClick={() => setCover(index)}
-                      disabled={pending || img.isCover}
+                      disabled={pending || uploading || img.isCover}
                       className="inline-flex h-7 flex-1 items-center justify-center gap-1 rounded bg-white/95 text-[10px] font-medium text-[#1a1a18] disabled:opacity-70"
                       title="Use as main shop photo"
                     >
@@ -287,7 +322,7 @@ export function ProductForm({
                     <button
                       type="button"
                       onClick={() => removeImage(index)}
-                      disabled={pending}
+                      disabled={pending || uploading}
                       className="inline-flex h-7 items-center gap-1 rounded bg-white/95 px-2 text-[10px] font-medium text-[#8b3a3a]"
                       title="Remove this photo"
                     >
@@ -301,62 +336,56 @@ export function ProductForm({
           ) : (
             <div className="flex flex-col items-center justify-center gap-2 rounded-md border border-dashed border-[#d8d3c8] bg-[#faf8f5] px-4 py-8 text-center">
               <ImagePlus className="h-6 w-6 text-[#7a776f]" />
-              <p className="text-xs text-[#5c5a54]">Upload photos — you can remove any you don’t need.</p>
+              <p className="text-xs text-[#5c5a54]">
+                Upload one or many photos — pick several files together.
+              </p>
             </div>
           )}
           <div className="flex flex-wrap items-center gap-2">
             <label className="inline-flex cursor-pointer items-center gap-2 rounded-md border border-[#d8d3c8] bg-[#faf8f5] px-3 py-2 text-xs font-medium text-[#1a1a18] hover:bg-[#f0ebe3]">
               <Upload className="h-3.5 w-3.5" />
-              {uploading ? "Uploading…" : "Upload image"}
+              {uploading
+                ? "Uploading…"
+                : images.length
+                  ? "Add more photos"
+                  : "Upload photos"}
               <input
                 type="file"
                 accept="image/jpeg,image/png,image/webp,image/gif"
+                multiple
                 className="sr-only"
-                disabled={uploading || pending}
+                disabled={uploading || pending || images.length >= 12}
                 onChange={(e) => {
-                  const file = e.target.files?.[0];
-                  if (file) void onUpload(file);
+                  const list = e.target.files;
+                  if (list?.length) void onUploadFiles(list);
                   e.target.value = "";
                 }}
               />
             </label>
-            {images.length > 0 ? (
-              <p className="text-[11px] text-[#7a776f]">
-                Tap <strong>Remove</strong> on a photo to drop it. Save the product to keep the change.
-              </p>
-            ) : null}
+            <p className="text-[11px] text-[#7a776f]">
+              {images.length}/12 photos · Set one as cover · Remove any you don’t need · Save to
+              keep changes
+            </p>
           </div>
         </div>
       </Field>
 
-      <label className="flex items-center gap-2 text-sm text-[#3d3b36]">
-        <input
-          type="checkbox"
-          name="isFeatured"
-          defaultChecked={product?.isFeatured}
-          className="rounded border-[#d8d3c8]"
-          disabled={pending}
-        />
-        <span className="inline-flex items-center gap-1.5">
+      <div className="space-y-1.5">
+        <label className="flex flex-wrap items-center gap-2 text-sm text-[#3d3b36]">
+          <input
+            type="checkbox"
+            name="isFeatured"
+            defaultChecked={product?.isFeatured}
+            className="rounded border-[#d8d3c8]"
+            disabled={pending}
+          />
           Feature on homepage
-          <span className="group relative inline-flex">
-            <button
-              type="button"
-              className="inline-flex h-4 w-4 items-center justify-center rounded-full border border-[#cfc8bc] bg-[#f7f3ec] text-[10px] font-bold leading-none text-[#6b6459]"
-              aria-label="Help: Feature on homepage"
-            >
-              ?
-            </button>
-            <span
-              role="tooltip"
-              className="pointer-events-none absolute bottom-full left-0 z-30 mb-2 w-56 rounded-md border border-[#e8e2d7] bg-[#1a1a18] px-2.5 py-2 text-[11px] font-normal text-[#f7f3ec] opacity-0 shadow-lg transition-opacity group-hover:opacity-100 group-focus-within:opacity-100"
-            >
-              Tick this to highlight the product on the homepage featured section. Only works when
-              status is Published.
-            </span>
-          </span>
-        </span>
-      </label>
+          <FieldHelp
+            label="Feature on homepage"
+            hint="Tick this to highlight the product on the homepage featured section. Only works when status is Published."
+          />
+        </label>
+      </div>
       {categories.length > 0 ? (
         <Field
           label="Categories"

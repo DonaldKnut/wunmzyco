@@ -345,38 +345,57 @@ export function Label({
   );
 }
 
+/** In-flow help tip — avoids overflow clipping inside scrollable modals/dialogs. */
+export function FieldHelp({ label, hint }: { label: string; hint: string }) {
+  const [open, setOpen] = React.useState(false);
+  const tipId = React.useId();
+
+  return (
+    <div className={cn("min-w-0", open && "w-full basis-full")}>
+      <button
+        type="button"
+        aria-expanded={open}
+        aria-controls={tipId}
+        onClick={() => setOpen((v) => !v)}
+        className={cn(
+          "inline-flex h-4 w-4 shrink-0 items-center justify-center rounded-full border text-[10px] font-bold leading-none",
+          open
+            ? "border-[#1a1a18] bg-[#1a1a18] text-[#f7f3ec]"
+            : "border-[#cfc8bc] bg-[#f7f3ec] text-[#6b6459] hover:border-[#a89f8e] hover:text-[#1a1a18]",
+        )}
+        aria-label={`Help: ${label}`}
+        title="What is this?"
+      >
+        ?
+      </button>
+      {open ? (
+        <p
+          id={tipId}
+          role="note"
+          className="mt-1.5 w-full max-w-full break-words rounded-md border border-[#2c2a26] bg-[#1a1a18] px-2.5 py-2 text-[11px] font-normal normal-case leading-relaxed tracking-normal text-[#f7f3ec] shadow-md"
+        >
+          {hint}
+        </p>
+      ) : null}
+    </div>
+  );
+}
+
 export function Field({
   label,
   hint,
   children,
 }: {
   label: string;
-  /** Plain-language tip shown on hover of the ? icon. */
+  /** Plain-language tip — toggles in place so it stays readable in modals. */
   hint?: string;
   children: React.ReactNode;
 }) {
   return (
     <div className="space-y-1.5">
-      <div className="flex items-center gap-1.5">
+      <div className="flex flex-wrap items-start gap-x-1.5 gap-y-1">
         <Label>{label}</Label>
-        {hint ? (
-          <span className="group relative inline-flex shrink-0">
-            <button
-              type="button"
-              className="inline-flex h-4 w-4 items-center justify-center rounded-full border border-[#cfc8bc] bg-[#f7f3ec] text-[10px] font-bold leading-none text-[#6b6459] hover:border-[#a89f8e] hover:text-[#1a1a18]"
-              aria-label={`Help: ${label}`}
-            >
-              ?
-            </button>
-            <span
-              role="tooltip"
-              className="pointer-events-none absolute bottom-full left-1/2 z-30 mb-2 w-56 -translate-x-1/2 rounded-md border border-[#e8e2d7] bg-[#1a1a18] px-2.5 py-2 text-[11px] font-normal normal-case tracking-normal text-[#f7f3ec] opacity-0 shadow-lg transition-opacity duration-150 group-hover:opacity-100 group-focus-within:opacity-100"
-            >
-              {hint}
-              <span className="absolute left-1/2 top-full -mt-px -translate-x-1/2 border-4 border-transparent border-t-[#1a1a18]" />
-            </span>
-          </span>
-        ) : null}
+        {hint ? <FieldHelp label={label} hint={hint} /> : null}
       </div>
       {children}
     </div>

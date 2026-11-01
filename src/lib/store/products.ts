@@ -3,6 +3,8 @@ import type { Prisma, Product, ProductImage, ProductStatus } from "@prisma/clien
 
 export const PUBLISHED = "PUBLISHED" satisfies ProductStatus;
 
+export type ProductListImage = Pick<ProductImage, "url" | "alt">;
+
 export type ProductListItem = Pick<
   Product,
   | "id"
@@ -14,7 +16,9 @@ export type ProductListItem = Pick<
   | "isOneOfOne"
   | "stock"
 > & {
-  coverImage: Pick<ProductImage, "url" | "alt"> | null;
+  coverImage: ProductListImage | null;
+  /** Ordered gallery for card sliders (cover first). */
+  images: ProductListImage[];
 };
 
 const listSelect = {
@@ -27,12 +31,11 @@ const listSelect = {
   isOneOfOne: true,
   stock: true,
   images: {
-    where: { isCover: true },
-    take: 1,
-    orderBy: { sortOrder: "asc" as const },
-    select: { url: true, alt: true },
+    take: 8,
+    orderBy: [{ isCover: "desc" as const }, { sortOrder: "asc" as const }],
+    select: { url: true, alt: true, isCover: true },
   },
-} as const;
+} satisfies Prisma.ProductSelect;
 
 function mapListItem(
   row: {
@@ -44,10 +47,12 @@ function mapListItem(
     condition: Product["condition"];
     isOneOfOne: boolean;
     stock: number;
-    images: { url: string; alt: string | null }[];
+    images: { url: string; alt: string | null; isCover?: boolean }[];
   },
 ): ProductListItem {
-  const cover = row.images[0];
+  const images = row.images.map((img) => ({ url: img.url, alt: img.alt }));
+  const cover =
+    row.images.find((img) => img.isCover) ?? row.images[0] ?? null;
   return {
     id: row.id,
     name: row.name,
@@ -58,6 +63,7 @@ function mapListItem(
     isOneOfOne: row.isOneOfOne,
     stock: row.stock,
     coverImage: cover ? { url: cover.url, alt: cover.alt } : null,
+    images,
   };
 }
 
