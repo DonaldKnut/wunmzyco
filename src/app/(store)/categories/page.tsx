@@ -42,7 +42,8 @@ export default async function CategoriesIndexPage() {
                 <div className="flex items-center justify-between text-xs text-muted-foreground">
                   <span className="font-mono text-xs font-semibold text-[#b38e5d]">0{idx + 1}</span>
                   <span className="rounded-full bg-secondary px-3 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
-                    Curated Collection
+                    {cat._count.products}{" "}
+                    {cat._count.products === 1 ? "piece" : "pieces"}
                   </span>
                 </div>
                 <h3 className="mt-5 font-display text-3xl font-medium tracking-tight text-foreground transition-colors group-hover:text-accent">

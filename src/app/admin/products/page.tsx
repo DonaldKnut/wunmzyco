@@ -30,8 +30,7 @@ export default async function AdminProductsPage() {
       },
     }),
     prisma.category.findMany({
-      where: { isActive: true },
-      orderBy: { sortOrder: "asc" },
+      orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
     }),
   ]);
 

@@ -5,6 +5,7 @@ export function revalidateStorefront(opts?: { productSlug?: string; categorySlug
   revalidatePath("/");
   revalidatePath("/shop");
   revalidatePath("/search");
+  revalidatePath("/categories");
   if (opts?.productSlug) {
     revalidatePath(`/products/${opts.productSlug}`);
   }

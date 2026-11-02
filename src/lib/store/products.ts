@@ -173,7 +173,18 @@ export async function getActiveCategories() {
     return await prisma.category.findMany({
       where: { isActive: true },
       orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
-      select: { id: true, name: true, slug: true, description: true, imageUrl: true },
+      select: {
+        id: true,
+        name: true,
+        slug: true,
+        description: true,
+        imageUrl: true,
+        _count: {
+          select: {
+            products: { where: { product: { status: PUBLISHED } } },
+          },
+        },
+      },
     });
   } catch {
     return [];

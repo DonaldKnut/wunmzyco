@@ -33,8 +33,7 @@ export default async function AdminOverviewPage({
     getDashboardMetrics(),
     canWriteProducts
       ? prisma.category.findMany({
-          where: { isActive: true },
-          orderBy: { sortOrder: "asc" },
+          orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
         })
       : Promise.resolve([]),
   ]);

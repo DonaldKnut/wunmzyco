@@ -389,7 +389,7 @@ export function ProductForm({
       {categories.length > 0 ? (
         <Field
           label="Categories"
-          hint="Choose where this product should appear in the shop (e.g. Dresses, Tops). Helps shoppers browse by type. You can select more than one."
+          hint="Choose where this product should appear in the shop. You can select more than one. Manage categories (and bulk-assign products) under Categories in the dashboard."
         >
           <div className="flex flex-wrap gap-3 rounded-md border border-[#d8d3c8] bg-white p-3">
             {categories.map((cat) => (
@@ -402,12 +402,24 @@ export function ProductForm({
                   className="rounded border-[#d8d3c8]"
                   disabled={pending}
                 />
-                {cat.name}
+                <span>
+                  {cat.name}
+                  {!cat.isActive ? (
+                    <span className="ml-1 text-[10px] uppercase tracking-wide text-[#b38e5d]">
+                      (hidden)
+                    </span>
+                  ) : null}
+                </span>
               </label>
             ))}
           </div>
         </Field>
-      ) : null}
+      ) : (
+        <p className="rounded-md border border-dashed border-[#d8d3c8] bg-[#faf8f5] px-3 py-2 text-xs text-[#5c5a54]">
+          No categories yet. Create some under <strong>Categories</strong>, then assign products
+          there or here.
+        </p>
+      )}
       <div className="flex gap-2 pt-1">
         <Button type="submit" disabled={pending || uploading}>
           {pending ? "Saving…" : submitLabel}
