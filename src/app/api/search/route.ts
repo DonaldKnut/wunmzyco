@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/db";
 import { jsonOk, jsonError } from "@/lib/api/http";
 import { rateLimit, clientKey } from "@/lib/rate-limit";
+import { buildShopWhere } from "@/lib/store/products";
 
 export async function GET(request: Request) {
   const ip = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "unknown";
@@ -12,22 +13,15 @@ export async function GET(request: Request) {
   if (!q || q.length < 1) {
     return jsonOk({ hits: [], query: q });
   }
-  if (q.length > 80) return jsonError("Query too long", 400);
+  if (q.length > 120) return jsonError("Please use a shorter search.", 400);
+
+  const { where } = buildShopWhere({ q });
 
   const [products, categories, collections] = await Promise.all([
     prisma.product.findMany({
-      where: {
-        status: "PUBLISHED",
-        OR: [
-          { name: { contains: q, mode: "insensitive" } },
-          { description: { contains: q, mode: "insensitive" } },
-          { sku: { contains: q, mode: "insensitive" } },
-          { material: { contains: q, mode: "insensitive" } },
-          { colours: { has: q } },
-        ],
-      },
+      where,
       take: 8,
-      orderBy: { updatedAt: "desc" },
+      orderBy: [{ isFeatured: "desc" }, { updatedAt: "desc" }],
       select: {
         id: true,
         name: true,

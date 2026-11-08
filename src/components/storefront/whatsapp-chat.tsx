@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
 import { MessageCircle, Minus, X } from "lucide-react";
-import { BRAND, whatsappLink } from "@/lib/brand";
+import { BRAND, productEnquiryMessage, whatsappLink } from "@/lib/brand";
 import { cn } from "@/lib/utils";
 
 const MESSAGES = [
@@ -128,10 +128,27 @@ export function WhatsAppChat({
   }
   if (!mounted) return null;
 
-  const href = whatsappLink(
+  const onProductPage = Boolean(pathname?.startsWith("/products/"));
+  const genericHref = whatsappLink(
     BRAND.whatsappNumber,
     "Hi Wunmzy Co — I’d like to chat about an outfit.",
   );
+
+  /** On a product page, name the item and link to it so the team knows what you mean. */
+  function startChat(e: React.MouseEvent<HTMLAnchorElement>) {
+    if (!onProductPage) return;
+    const name =
+      document.querySelector("main h1")?.textContent?.trim() ||
+      document.title.split(" · ")[0]?.trim();
+    if (!name) return;
+    e.preventDefault();
+    const url = `${window.location.origin}${window.location.pathname}`;
+    window.open(
+      whatsappLink(BRAND.whatsappNumber, productEnquiryMessage(name, url)),
+      "_blank",
+      "noopener,noreferrer",
+    );
+  }
 
   function openManual() {
     clearTimer(closeTimerRef);
@@ -216,10 +233,13 @@ export function WhatsAppChat({
         </div>
         <div className="space-y-3 px-3 py-3">
           <p className="text-xs leading-relaxed text-muted-foreground">
-            We&apos;re online now — ask about Corporate, Street, Dinner, or Party looks.
+            {onProductPage
+              ? "We're online now — your message will include a link to this item so we know exactly which one you mean."
+              : "We're online now — ask about Corporate, Street, Dinner, or Party looks."}
           </p>
           <a
-            href={href}
+            href={genericHref}
+            onClick={startChat}
             target="_blank"
             rel="noreferrer"
             className="inline-flex w-full items-center justify-center gap-2 rounded-full bg-[#25D366] px-4 py-2.5 text-sm font-medium text-white transition hover:bg-[#1ebe57] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#25D366] focus-visible:ring-offset-2"

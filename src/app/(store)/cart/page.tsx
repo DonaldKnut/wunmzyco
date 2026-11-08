@@ -8,7 +8,8 @@ import { removeCartItem, updateCartItem } from "@/lib/actions/cart";
 import { ProductImagePlaceholder } from "@/components/storefront/product-image-placeholder";
 import { ShoppingBagIllustration } from "@/components/storefront/illustrations";
 import { ShieldCheck, Truck, Lock, ArrowRight, Sparkles, MessageCircle } from "lucide-react";
-import { BRAND, whatsappLink } from "@/lib/brand";
+import { BRAND, cartEnquiryMessage, whatsappLink } from "@/lib/brand";
+import { absoluteUrl } from "@/lib/utils";
 
 export const metadata = { title: "Your Shopping Bag · Wunmzy Co" };
 
@@ -22,7 +23,14 @@ export default async function CartPage() {
   const itemCount = lines.reduce((sum, line) => sum + line.quantity, 0);
   const wa = whatsappLink(
     BRAND.whatsappNumber,
-    `Hi Wunmzy Co — I’d like to complete my order of ${itemCount} piece(s) (Total: ${formatNgn(subtotal)}) via WhatsApp.`,
+    cartEnquiryMessage(
+      lines.map((line) => ({
+        name: line.name,
+        quantity: line.quantity,
+        url: absoluteUrl(`/products/${line.slug}`),
+      })),
+      formatNgn(subtotal),
+    ),
   );
 
   return (

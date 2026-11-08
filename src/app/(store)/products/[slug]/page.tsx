@@ -8,7 +8,8 @@ import { getOrCreateCartId } from "@/lib/cart";
 import { prisma } from "@/lib/db";
 import { effectiveUnitPrice, getProductBySlug } from "@/lib/store/products";
 import { Sparkles, ShieldCheck, Truck, MessageCircle, ArrowLeft } from "lucide-react";
-import { BRAND, whatsappLink } from "@/lib/brand";
+import { BRAND, productEnquiryMessage, whatsappLink } from "@/lib/brand";
+import { absoluteUrl } from "@/lib/utils";
 
 export async function generateMetadata({ params }: PageProps<"/products/[slug]">) {
   const { slug } = await params;
@@ -49,7 +50,7 @@ export default async function ProductPage({ params }: PageProps<"/products/[slug
 
   const stylistWa = whatsappLink(
     BRAND.whatsappNumber,
-    `Hi Wunmzy Co! I’m looking at the piece "${product.name}" (${BRAND.siteUrl}/products/${product.slug}) and would love styling/measurement details.`,
+    productEnquiryMessage(product.name, absoluteUrl(`/products/${product.slug}`)),
   );
 
   return (
@@ -179,7 +180,7 @@ export default async function ProductPage({ params }: PageProps<"/products/[slug
             className="flex items-center justify-center gap-2 rounded-2xl border border-emerald-500/40 bg-emerald-50/60 p-4 text-xs font-semibold uppercase tracking-wider text-emerald-800 transition hover:bg-emerald-100"
           >
             <MessageCircle className="h-4 w-4 text-emerald-600" />
-            <span>Consult Stylist on WhatsApp About This Piece</span>
+            <span>Ask about this item on WhatsApp</span>
           </a>
 
           {/* Value Assurances Box */}

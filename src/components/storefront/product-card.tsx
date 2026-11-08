@@ -2,8 +2,9 @@
 
 import Link from "next/link";
 import { useState, useTransition } from "react";
-import { ShoppingBag, Check, Sparkles } from "lucide-react";
+import { ShoppingBag, Check, Sparkles, MessageCircle } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { BRAND, productEnquiryMessage, whatsappLink } from "@/lib/brand";
 import { formatNgn } from "@/lib/currency";
 import { effectiveUnitPrice, type ProductListItem } from "@/lib/store/products";
 import { ProductCardImageSlider } from "@/components/storefront/product-card-image-slider";
@@ -30,6 +31,17 @@ export function ProductCard({ product, className }: ProductCardProps) {
       : product.coverImage
         ? [product.coverImage]
         : [];
+
+  function handleAsk(e: React.MouseEvent) {
+    e.preventDefault();
+    e.stopPropagation();
+    const url = `${window.location.origin}/products/${product.slug}`;
+    window.open(
+      whatsappLink(BRAND.whatsappNumber, productEnquiryMessage(product.name, url)),
+      "_blank",
+      "noopener,noreferrer",
+    );
+  }
 
   function handleAdd(e: React.MouseEvent) {
     e.preventDefault();
@@ -124,20 +136,31 @@ export function ProductCard({ product, className }: ProductCardProps) {
         ) : null}
       </div>
 
-      <div className="mt-3.5 space-y-1 px-1 transition-transform duration-300 group-hover:-translate-y-0.5">
+      <div className="mt-2.5 space-y-1 px-0.5">
         <Link
           href={`/products/${product.slug}`}
-          className="font-display line-clamp-1 text-lg font-medium leading-snug tracking-tight text-foreground transition-colors hover:text-accent"
+          className="font-display line-clamp-2 text-base font-medium leading-snug tracking-tight text-foreground transition-colors hover:text-accent sm:line-clamp-1 sm:text-lg"
         >
           {product.name}
         </Link>
-        <div className="flex items-baseline gap-2.5 text-sm">
-          <span className="font-semibold text-foreground">{formatNgn(price)}</span>
-          {onSale ? (
-            <span className="text-xs text-muted-foreground line-through">
-              {formatNgn(product.priceKobo)}
-            </span>
-          ) : null}
+        <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1">
+          <div className="flex items-baseline gap-2 text-sm">
+            <span className="font-semibold text-foreground">{formatNgn(price)}</span>
+            {onSale ? (
+              <span className="text-xs text-muted-foreground line-through">
+                {formatNgn(product.priceKobo)}
+              </span>
+            ) : null}
+          </div>
+          <button
+            type="button"
+            onClick={handleAsk}
+            className="inline-flex items-center gap-1 rounded-full border border-emerald-500/40 bg-emerald-50/70 px-2.5 py-1 text-[11px] font-medium text-emerald-800 transition-colors hover:bg-emerald-100"
+            aria-label={`Ask about ${product.name} on WhatsApp`}
+          >
+            <MessageCircle className="h-3 w-3" aria-hidden />
+            Ask
+          </button>
         </div>
       </div>
     </article>

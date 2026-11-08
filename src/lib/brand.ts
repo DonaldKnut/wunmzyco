@@ -32,3 +32,29 @@ export function whatsappLink(number: string = BRAND.whatsappNumber, message?: st
   const base = `https://wa.me/${digits}`;
   return message ? `${base}?text=${encodeURIComponent(message)}` : base;
 }
+
+/** WhatsApp text for asking about one item — always names it and links to it. */
+export function productEnquiryMessage(productName: string, productUrl: string) {
+  return [
+    "Hi Wunmzy Co! I'd like to ask about this item:",
+    "",
+    `*${productName}*`,
+    productUrl,
+    "",
+    "Is it still available? Please share sizes/measurements and delivery details.",
+  ].join("\n");
+}
+
+/** WhatsApp text for a bag of items — one line per item with its link. */
+export function cartEnquiryMessage(
+  lines: { name: string; quantity: number; url: string }[],
+  totalLabel: string,
+) {
+  return [
+    "Hi Wunmzy Co! I'd like to order these items:",
+    "",
+    ...lines.map((l, i) => `${i + 1}. *${l.name}* × ${l.quantity}\n${l.url}`),
+    "",
+    `Total: ${totalLabel}`,
+  ].join("\n");
+}

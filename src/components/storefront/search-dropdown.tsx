@@ -96,7 +96,7 @@ export function SearchDropdown() {
           name="q"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          placeholder="Search products, categories, collections…"
+          placeholder="Search anything: black gown, tops under 10k, dinner…"
           className="h-12 border-border bg-card"
           aria-label="Search the store"
         />
@@ -151,7 +151,7 @@ export function SearchDropdown() {
           {query.trim() ? (
             <div className="border-t border-border pt-3">
               <Link
-                href={`/search?q=${encodeURIComponent(query.trim())}`}
+                href={`/shop?q=${encodeURIComponent(query.trim())}`}
                 onClick={closeSearch}
                 className="inline-flex items-center gap-2 text-sm underline-offset-4 hover:underline"
               >

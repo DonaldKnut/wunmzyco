@@ -382,7 +382,7 @@ export function ProductForm({
           Feature on homepage
           <FieldHelp
             label="Feature on homepage"
-            hint="Tick this to highlight the product on the homepage featured section. Only works when status is Published."
+            hint="Tick this to show the product first on the homepage and shop (before other items). Only works when status is Published."
           />
         </label>
       </div>
