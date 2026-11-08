@@ -9,8 +9,8 @@ import { getProductsByCategorySlug } from "@/lib/store/products";
 export async function generateMetadata({ params }: PageProps<"/categories/[slug]">) {
   const { slug } = await params;
   const { category } = await getProductsByCategorySlug(slug, 1);
-  if (!category) return { title: "Category · Wunmzy Co" };
-  return { title: `${category.name} · Wunmzy Co`, description: category.description ?? undefined };
+  if (!category) return { title: "Category" };
+  return { title: category.name, description: category.description ?? undefined };
 }
 
 export default async function CategoryPage({ params }: PageProps<"/categories/[slug]">) {

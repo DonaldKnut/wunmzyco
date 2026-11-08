@@ -11,7 +11,7 @@ import { ShieldCheck, Truck, Lock, ArrowRight, Sparkles, MessageCircle } from "l
 import { BRAND, cartEnquiryMessage, whatsappLink } from "@/lib/brand";
 import { absoluteUrl } from "@/lib/utils";
 
-export const metadata = { title: "Your Shopping Bag · Wunmzy Co" };
+export const metadata = { title: "Your Shopping Bag" };
 
 export default async function CartPage() {
   const lines = await getCartLines();

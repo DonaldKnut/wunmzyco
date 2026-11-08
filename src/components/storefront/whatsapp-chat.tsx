@@ -173,6 +173,7 @@ export function WhatsAppChat({
         onClick={openManual}
         className={cn(
           "wa-fab-pulse fixed bottom-5 right-5 z-40 flex h-14 w-14 items-center justify-center rounded-full bg-[#25D366] text-white shadow-[0_12px_32px_rgba(17,17,17,0.2)] transition duration-300 hover:scale-105 hover:bg-[#1ebe57] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#25D366] focus-visible:ring-offset-2",
+          onProductPage && "max-lg:bottom-24",
           className,
         )}
         aria-label="Open WhatsApp chat — we're online"
@@ -188,6 +189,7 @@ export function WhatsAppChat({
     <div
       className={cn(
         "fixed bottom-5 right-5 z-40 w-[min(calc(100vw-1.5rem),17.5rem)] flex-col items-end gap-2",
+        onProductPage && "max-lg:bottom-24",
         className,
       )}
       aria-expanded={true}

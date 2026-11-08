@@ -3,7 +3,7 @@ import Link from "next/link";
 import { getStoreSettings } from "@/lib/store/settings";
 import { BRAND, whatsappLink } from "@/lib/brand";
 
-export const metadata = { title: "Stylist Concierge & Contact · Wunmzy Co" };
+export const metadata = { title: "Stylist Concierge & Contact" };
 
 export default async function ContactPage() {
   const settings = await getStoreSettings();

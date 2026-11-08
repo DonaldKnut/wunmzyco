@@ -14,6 +14,7 @@ import {
 } from "@/lib/orders/numbers";
 import { getPaymentProvider } from "@/lib/payments";
 import { absoluteUrl } from "@/lib/utils";
+import { BRAND } from "@/lib/brand";
 import { sendEmail, orderConfirmationHtml } from "@/lib/email";
 import { formatNgn } from "@/lib/currency";
 import type { Prisma } from "@prisma/client";
@@ -62,14 +63,26 @@ function buildWhatsAppOrderMessage(input: {
   totalFormatted: string;
   phone: string;
   trackingUrl: string;
+  items: { name: string; variantName: string | null; quantity: number; url: string }[];
 }): string {
   return [
     `Hi Wunmzy Co — I'd like to pay for order *${input.orderNumber}*.`,
+    "",
+    ...input.items.map(
+      (item, i) =>
+        `${i + 1}. *${item.name}*${item.variantName ? ` (${item.variantName})` : ""} × ${item.quantity}\n${item.url}`,
+    ),
+    "",
     `Name: ${input.customerName}`,
     `Phone: ${input.phone}`,
     `Total: ${input.totalFormatted}`,
     `Track: ${input.trackingUrl}`,
   ].join("\n");
+}
+
+/** Store setting first, brand number as fallback so WhatsApp checkout never silently disappears. */
+function storeWhatsAppNumber(settingsNumber: string | null | undefined): string {
+  return settingsNumber?.trim() || BRAND.whatsappNumber;
 }
 
 function unitPrice(product: {
@@ -249,15 +262,6 @@ export async function createPendingOrderAndInitializePayment(input: CheckoutInpu
   const reservationMinutes = settings?.reservationMinutes ?? 30;
   const defaultWeight = settings?.defaultWeightGrams ?? 400;
 
-  if (paymentMethod === "whatsapp") {
-    const wa = settings?.whatsappNumber?.trim();
-    if (!wa) {
-      throw new Error(
-        "WhatsApp checkout is not configured. Set a WhatsApp number in Admin → Settings.",
-      );
-    }
-  }
-
   // Idempotency: reuse an open Paystack session for the same cart (blocks double charge
   // from double-submit / multi-tab within the reservation window).
   if (paymentMethod === "paystack" && input.cartId) {
@@ -436,13 +440,19 @@ export async function createPendingOrderAndInitializePayment(input: CheckoutInpu
   let whatsappUrl: string | null = null;
 
   if (paymentMethod === "whatsapp") {
-    const waDigits = normalizeWhatsAppDigits(settings!.whatsappNumber!);
+    const waDigits = normalizeWhatsAppDigits(storeWhatsAppNumber(settings?.whatsappNumber));
     const message = buildWhatsAppOrderMessage({
       orderNumber: order.orderNumber,
       customerName: input.address.fullName,
       totalFormatted: formatNgn(totalKobo),
       phone: input.address.phone,
       trackingUrl,
+      items: priced.lines.map((line) => ({
+        name: line.productName,
+        variantName: line.variantName,
+        quantity: line.quantity,
+        url: absoluteUrl(`/products/${line.productSlug}`),
+      })),
     });
     whatsappUrl = `https://wa.me/${waDigits}?text=${encodeURIComponent(message)}`;
     authorizationUrl = whatsappUrl;

@@ -3,7 +3,7 @@ import { ArrowRight, Layers, Sparkles } from "lucide-react";
 import { getActiveCategories } from "@/lib/store/products";
 import { EmptyState } from "@/components/storefront/empty-state";
 
-export const metadata = { title: "Categories Directory · Wunmzy Co" };
+export const metadata = { title: "Categories Directory" };
 
 export default async function CategoriesIndexPage() {
   const categories = await getActiveCategories();

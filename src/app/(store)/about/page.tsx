@@ -4,7 +4,7 @@ import Link from "next/link";
 import { getStoreSettings } from "@/lib/store/settings";
 import { BRAND, whatsappLink } from "@/lib/brand";
 
-export const metadata = { title: "Our Story & Philosophy · Wunmzy Co" };
+export const metadata = { title: "Our Story & Philosophy" };
 
 export default async function AboutPage() {
   const settings = await getStoreSettings();

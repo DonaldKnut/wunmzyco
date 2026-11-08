@@ -1,6 +1,6 @@
 import { Marketplace } from "@/components/storefront/marketplace";
 
-export const metadata = { title: "Shop all products · Wunmzy Co" };
+export const metadata = { title: "Shop all products" };
 
 export default async function ShopPage({ searchParams }: PageProps<"/shop">) {
   const sp = await searchParams;

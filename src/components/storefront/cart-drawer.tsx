@@ -185,6 +185,9 @@ export function CartDrawer() {
             <Button asChild className="w-full" size="lg" onClick={closeCart}>
               <Link href="/checkout">Checkout</Link>
             </Button>
+            <p className="text-center text-xs text-muted-foreground">
+              At checkout, pay online with Paystack or choose to pay via WhatsApp.
+            </p>
             <Button asChild variant="outline" className="w-full" onClick={closeCart}>
               <Link href="/cart">View full cart</Link>
             </Button>

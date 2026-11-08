@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useState, useTransition } from "react";
 import { ShoppingBag, Check, Sparkles, MessageCircle } from "lucide-react";
+import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { BRAND, productEnquiryMessage, whatsappLink } from "@/lib/brand";
 import { formatNgn } from "@/lib/currency";
@@ -59,12 +60,15 @@ export function ProductCard({ product, className }: ProductCardProps) {
         bumpCart();
         openCart();
         setTimeout(() => setAdded(false), 1600);
+        return;
       }
+      const json = (await res.json().catch(() => null)) as { error?: string } | null;
+      toast.error(json?.error ?? "Could not add this item to your cart. Please try again.");
     });
   }
 
   return (
-    <article className={cn("group flex flex-col", className)}>
+    <article className={cn("group flex h-full flex-col", className)}>
       <div className="relative overflow-hidden rounded-xl border border-border/70 bg-card transition-all duration-300 group-hover:border-foreground/20 group-hover:shadow-md">
         <div className="relative aspect-[3/4] overflow-hidden">
           <ProductCardImageSlider
@@ -103,63 +107,66 @@ export function ProductCard({ product, className }: ProductCardProps) {
           </div>
         ) : null}
 
-        {!soldOut ? (
-          <button
-            type="button"
-            onClick={handleAdd}
-            disabled={pending}
-            className={cn(
-              "absolute bottom-3 left-3 right-3 z-20 flex translate-y-4 items-center justify-center gap-2 rounded-lg bg-[#121110] px-4 py-2.5 text-xs font-semibold uppercase tracking-wider text-[#fbf9f5] opacity-0 shadow-lg backdrop-blur-md transition-all duration-300 ease-out",
-              "group-hover:translate-y-0 group-hover:opacity-100",
-              "hover:bg-[#252422] focus-visible:translate-y-0 focus-visible:opacity-100",
-              pending && "opacity-80",
-              added && "translate-y-0 bg-[#2d4a2d] text-white opacity-100",
-            )}
-          >
-            {added ? (
-              <>
-                <Check className="h-3.5 w-3.5" />
-                Added to Bag
-              </>
-            ) : (
-              <>
-                <ShoppingBag
-                  className={cn(
-                    "h-3.5 w-3.5 text-[#d4af37] transition-transform",
-                    pending && "animate-pulse",
-                  )}
-                />
-                {pending ? "Adding…" : "Quick Add"}
-              </>
-            )}
-          </button>
-        ) : null}
       </div>
 
-      <div className="mt-2.5 space-y-1 px-0.5">
+      <div className="mt-2.5 flex flex-1 flex-col gap-2 px-0.5">
         <Link
           href={`/products/${product.slug}`}
           className="font-display line-clamp-2 text-base font-medium leading-snug tracking-tight text-foreground transition-colors hover:text-accent sm:line-clamp-1 sm:text-lg"
         >
           {product.name}
         </Link>
-        <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1">
-          <div className="flex items-baseline gap-2 text-sm">
-            <span className="font-semibold text-foreground">{formatNgn(price)}</span>
-            {onSale ? (
-              <span className="text-xs text-muted-foreground line-through">
-                {formatNgn(product.priceKobo)}
-              </span>
-            ) : null}
-          </div>
+        <div className="flex items-baseline gap-2 text-sm">
+          <span className="font-semibold text-foreground">{formatNgn(price)}</span>
+          {onSale ? (
+            <span className="text-xs text-muted-foreground line-through">
+              {formatNgn(product.priceKobo)}
+            </span>
+          ) : null}
+        </div>
+
+        <div className="mt-auto grid grid-cols-2 gap-1.5">
+          <button
+            type="button"
+            onClick={handleAdd}
+            disabled={soldOut || pending}
+            title="Add to cart, then pay with Paystack or WhatsApp at checkout"
+            className={cn(
+              "inline-flex h-9 items-center justify-center gap-1.5 rounded-lg px-2 text-xs font-semibold transition-colors",
+              soldOut
+                ? "cursor-not-allowed bg-secondary text-muted-foreground"
+                : added
+                  ? "bg-[#2d4a2d] text-white"
+                  : "bg-[#121110] text-[#fbf9f5] hover:bg-[#252422]",
+            )}
+          >
+            {soldOut ? (
+              "Sold out"
+            ) : added ? (
+              <>
+                <Check className="h-3.5 w-3.5" aria-hidden />
+                Added
+              </>
+            ) : (
+              <>
+                <ShoppingBag
+                  className={cn("h-3.5 w-3.5 text-[#d4af37]", pending && "animate-pulse")}
+                  aria-hidden
+                />
+                {pending ? "Adding…" : "Add to cart"}
+              </>
+            )}
+          </button>
           <button
             type="button"
             onClick={handleAsk}
-            className="inline-flex items-center gap-1 rounded-full border border-emerald-500/40 bg-emerald-50/70 px-2.5 py-1 text-[11px] font-medium text-emerald-800 transition-colors hover:bg-emerald-100"
+            title="Chat with us on WhatsApp about this item"
+            className="inline-flex h-9 items-center justify-center gap-1.5 rounded-lg border border-emerald-500/50 bg-emerald-50/70 px-2 text-xs font-semibold text-emerald-800 transition-colors hover:bg-emerald-100"
             aria-label={`Ask about ${product.name} on WhatsApp`}
           >
-            <MessageCircle className="h-3 w-3" aria-hidden />
-            Ask
+            <MessageCircle className="h-3.5 w-3.5" aria-hidden />
+            <span className="sm:hidden">Ask</span>
+            <span className="hidden sm:inline">Ask on WhatsApp</span>
           </button>
         </div>
       </div>

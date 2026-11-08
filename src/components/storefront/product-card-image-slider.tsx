@@ -97,7 +97,7 @@ export function ProductCardImageSlider({
           >
             <ChevronRight className="h-4 w-4" />
           </button>
-          <div className="absolute bottom-12 left-0 right-0 z-20 flex justify-center gap-1.5 px-2 sm:bottom-14">
+          <div className="absolute bottom-2 left-0 right-0 z-20 flex justify-center gap-1.5 px-2">
             {slides.map((slide, i) => (
               <button
                 key={`${slide.url}-${i}`}

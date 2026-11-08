@@ -6,7 +6,7 @@ import { Globe } from "lucide-react";
 import Link from "next/link";
 
 export const metadata = {
-  title: "Admin Suite · Wunmzy Co",
+  title: "Admin Suite",
   robots: { index: false, follow: false },
 };
 

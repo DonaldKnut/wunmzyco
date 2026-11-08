@@ -168,6 +168,42 @@ export async function getProductBySlug(slug: string) {
   }
 }
 
+/** Same-category pieces first, topped up with the newest arrivals. */
+export async function getRelatedProducts(
+  productId: string,
+  categoryIds: string[],
+  limit = 4,
+): Promise<ProductListItem[]> {
+  try {
+    const sameCategory = categoryIds.length
+      ? await prisma.product.findMany({
+          where: {
+            status: PUBLISHED,
+            id: { not: productId },
+            categories: { some: { categoryId: { in: categoryIds } } },
+          },
+          orderBy: [{ stock: "desc" }, { createdAt: "desc" }],
+          take: limit,
+          select: listSelect,
+        })
+      : [];
+    if (sameCategory.length >= limit) return sameCategory.map(mapListItem);
+
+    const filler = await prisma.product.findMany({
+      where: {
+        status: PUBLISHED,
+        id: { notIn: [productId, ...sameCategory.map((p) => p.id)] },
+      },
+      orderBy: { createdAt: "desc" },
+      take: limit - sameCategory.length,
+      select: listSelect,
+    });
+    return [...sameCategory, ...filler].map(mapListItem);
+  } catch {
+    return [];
+  }
+}
+
 export async function getActiveCategories() {
   try {
     return await prisma.category.findMany({
