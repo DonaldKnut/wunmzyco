@@ -3,7 +3,7 @@ import { z } from "zod";
 const envSchema = z.object({
   NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
   DATABASE_URL: z.string().min(1, "DATABASE_URL is required"),
-  NEXT_PUBLIC_SITE_URL: z.string().url().default("http://localhost:3000"),
+  NEXT_PUBLIC_SITE_URL: z.string().url().default("https://wunmzyco.com"),
   AUTH_SECRET: z.string().min(32, "AUTH_SECRET must be at least 32 characters"),
   ADMIN_SETUP_TOKEN: z.string().optional(),
   CRON_SECRET: z.string().optional(),
@@ -96,7 +96,7 @@ export function getEnv(): AppEnv {
 export function getPublicEnv() {
   const isProd = process.env.NODE_ENV === "production";
   return {
-    siteUrl: process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000",
+    siteUrl: process.env.NEXT_PUBLIC_SITE_URL ?? "https://wunmzyco.com",
     paystackPublicKey: process.env.NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY ?? "",
     // Client never sees mock in production builds.
     paymentProvider: isProd

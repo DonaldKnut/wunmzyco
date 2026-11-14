@@ -5,7 +5,12 @@ import { useState, useTransition } from "react";
 import { ShoppingBag, Check, Sparkles, MessageCircle } from "lucide-react";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
-import { BRAND, productEnquiryMessage, whatsappLink } from "@/lib/brand";
+import {
+  BRAND,
+  productEnquiryMessage,
+  productPublicUrl,
+  whatsappLink,
+} from "@/lib/brand";
 import { formatNgn } from "@/lib/currency";
 import { effectiveUnitPrice, type ProductListItem } from "@/lib/store/products";
 import { ProductCardImageSlider } from "@/components/storefront/product-card-image-slider";
@@ -36,7 +41,7 @@ export function ProductCard({ product, className }: ProductCardProps) {
   function handleAsk(e: React.MouseEvent) {
     e.preventDefault();
     e.stopPropagation();
-    const url = `${window.location.origin}/products/${product.slug}`;
+    const url = productPublicUrl(product.slug);
     window.open(
       whatsappLink(BRAND.whatsappNumber, productEnquiryMessage(product.name, url)),
       "_blank",

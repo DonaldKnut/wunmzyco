@@ -1,7 +1,7 @@
 "use server";
 
-import { prisma } from "@/lib/db";
 import { firstZodMessage } from "@/lib/forms/zod";
+import { subscribeEmail } from "@/lib/newsletter/subscribe";
 import { newsletterSchema } from "@/lib/schemas/api";
 
 export type NewsletterState = { ok: boolean; message: string };
@@ -10,17 +10,17 @@ export async function subscribeNewsletter(
   _prev: NewsletterState,
   formData: FormData,
 ): Promise<NewsletterState> {
-  const parsed = newsletterSchema.safeParse({ email: formData.get("email") });
+  const source = String(formData.get("source") || "storefront");
+  const parsed = newsletterSchema.safeParse({
+    email: formData.get("email"),
+    source,
+  });
   if (!parsed.success) {
     return { ok: false, message: firstZodMessage(parsed.error) };
   }
   try {
-    await prisma.newsletterSubscriber.upsert({
-      where: { email: parsed.data.email.toLowerCase() },
-      create: { email: parsed.data.email.toLowerCase(), source: "storefront" },
-      update: { isActive: true, unsubscribedAt: null },
-    });
-    return { ok: true, message: "You're on the list — thank you." };
+    const result = await subscribeEmail(parsed.data.email, parsed.data.source ?? source);
+    return { ok: result.ok, message: result.message };
   } catch {
     return { ok: false, message: "Something went wrong. Please try again." };
   }

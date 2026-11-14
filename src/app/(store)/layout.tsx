@@ -1,5 +1,6 @@
 import { Suspense } from "react";
 import { AnnouncementBar } from "@/components/storefront/announcement-bar";
+import { NewsletterPopup } from "@/components/storefront/newsletter-popup";
 import { SiteFooter } from "@/components/storefront/site-footer";
 import { SiteHeader } from "@/components/storefront/site-header";
 import { StorefrontUiProvider } from "@/components/providers/storefront-ui-provider";
@@ -18,6 +19,7 @@ export default function StoreLayout({ children }: LayoutProps<"/">) {
       <Suspense fallback={<Skeleton className="h-48 w-full rounded-none" />}>
         <SiteFooter />
       </Suspense>
+      <NewsletterPopup />
     </StorefrontUiProvider>
   );
 }

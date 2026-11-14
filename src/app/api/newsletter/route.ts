@@ -1,6 +1,6 @@
-import { prisma } from "@/lib/db";
 import { jsonError, jsonOk, enforceRateLimit } from "@/lib/api/http";
 import { zodErrorPayload } from "@/lib/forms/zod";
+import { subscribeEmail } from "@/lib/newsletter/subscribe";
 import { newsletterSchema } from "@/lib/schemas/api";
 
 export async function POST(request: Request) {
@@ -20,21 +20,14 @@ export async function POST(request: Request) {
     return jsonError(payload.message, 422, payload);
   }
 
-  const email = parsed.data.email.toLowerCase();
-
-  await prisma.newsletterSubscriber.upsert({
-    where: { email },
-    create: {
-      email,
-      source: parsed.data.source ?? "website",
-      isActive: true,
-    },
-    update: {
-      isActive: true,
-      unsubscribedAt: null,
-      source: parsed.data.source ?? undefined,
-    },
-  });
-
-  return jsonOk({ subscribed: true });
+  try {
+    const result = await subscribeEmail(
+      parsed.data.email,
+      parsed.data.source ?? "website",
+    );
+    if (!result.ok) return jsonError(result.message, 400);
+    return jsonOk({ subscribed: true, created: result.created });
+  } catch {
+    return jsonError("Something went wrong. Please try again.", 500);
+  }
 }

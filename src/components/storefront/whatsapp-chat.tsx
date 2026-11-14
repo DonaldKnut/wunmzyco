@@ -3,7 +3,12 @@
 import { useEffect, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
 import { MessageCircle, Minus, X } from "lucide-react";
-import { BRAND, productEnquiryMessage, whatsappLink } from "@/lib/brand";
+import {
+  BRAND,
+  productEnquiryMessage,
+  productPublicUrl,
+  whatsappLink,
+} from "@/lib/brand";
 import { cn } from "@/lib/utils";
 
 const MESSAGES = [
@@ -142,7 +147,8 @@ export function WhatsAppChat({
       document.title.split(" · ")[0]?.trim();
     if (!name) return;
     e.preventDefault();
-    const url = `${window.location.origin}${window.location.pathname}`;
+    const slug = pathname?.replace(/^\/products\//, "").split("/")[0] ?? "";
+    const url = slug ? productPublicUrl(slug) : `${BRAND.siteUrl}${pathname ?? ""}`;
     window.open(
       whatsappLink(BRAND.whatsappNumber, productEnquiryMessage(name, url)),
       "_blank",

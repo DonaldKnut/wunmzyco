@@ -211,6 +211,53 @@ body {
   animation: wa-panel-in 0.35s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
+@keyframes newsletter-card-in {
+  from {
+    opacity: 0;
+    transform: translateY(28px) scale(0.92);
+    filter: blur(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    filter: blur(0);
+  }
+}
+
+@keyframes newsletter-mark-in {
+  from {
+    opacity: 0;
+    transform: scale(0.7) rotate(-8deg);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) rotate(0deg);
+  }
+}
+
+@keyframes newsletter-success-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.newsletter-popup-card {
+  animation: newsletter-card-in 0.55s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.newsletter-popup-mark {
+  animation: newsletter-mark-in 0.65s 0.1s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.newsletter-popup-success {
+  animation: newsletter-success-in 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
 @keyframes toast-in {
   from {
     opacity: 0;

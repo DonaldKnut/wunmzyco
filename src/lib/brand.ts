@@ -8,8 +8,9 @@ export const BRAND = {
   contactEmail: "Wunmzy123@gmail.com",
   whatsappNumber: "+2347011726209",
   whatsappDisplay: "+234 701 172 6209",
-  webHandle: "wunmzy.co",
-  siteUrl: "https://wunmzy.co",
+  webHandle: "wunmzyco.com",
+  /** Live public site — always use this for customer-facing product / share links. */
+  siteUrl: "https://wunmzyco.com",
   facebookUrl: "https://www.facebook.com/wunmzy.co",
   instagramUrl: "https://www.instagram.com/wunmzy.co",
   tiktokUrl: "https://www.tiktok.com/@wunmzy.co",
@@ -24,8 +25,13 @@ export const BRAND = {
 
 We believe style should feel personal and empowering. Be bold. Be confident. Be you.
 
-For inquiries and orders, contact us on WhatsApp or call +234 701 172 6209. Find us online at wunmzy.co.`,
+For inquiries and orders, contact us on WhatsApp or call +234 701 172 6209. Find us online at wunmzyco.com.`,
 } as const;
+
+/** Public product URL for WhatsApp / share messages (never localhost). */
+export function productPublicUrl(slug: string) {
+  return `${BRAND.siteUrl}/products/${slug}`;
+}
 
 export function whatsappLink(number: string = BRAND.whatsappNumber, message?: string) {
   const digits = number.replace(/\D/g, "");

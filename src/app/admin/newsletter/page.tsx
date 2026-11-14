@@ -10,6 +10,21 @@ import {
   Th,
 } from "@/components/admin/ui";
 
+function sourceLabel(source: string | null) {
+  switch (source) {
+    case "popup":
+      return "Popup";
+    case "homepage":
+      return "Homepage";
+    case "storefront":
+      return "Storefront";
+    case "website":
+      return "Website";
+    default:
+      return source ?? "—";
+  }
+}
+
 export default async function AdminNewsletterPage() {
   await requirePermission("newsletter:read");
 
@@ -19,16 +34,20 @@ export default async function AdminNewsletterPage() {
   });
 
   const activeCount = subscribers.filter((s) => s.isActive).length;
+  const popupCount = subscribers.filter((s) => s.source === "popup").length;
 
   return (
     <>
       <PageHeader
         title="Newsletter"
-        description={`${activeCount} active subscriber${activeCount === 1 ? "" : "s"} (of ${subscribers.length} total).`}
+        description={`${activeCount} active · ${popupCount} from popup · ${subscribers.length} total. New signups email the store contact.`}
       />
 
       {subscribers.length === 0 ? (
-        <EmptyState title="No subscribers yet" />
+        <EmptyState
+          title="No subscribers yet"
+          description="When shoppers join via the homepage form or the timed popup, they appear here."
+        />
       ) : (
         <DataTable>
           <thead>
@@ -42,14 +61,16 @@ export default async function AdminNewsletterPage() {
           <tbody>
             {subscribers.map((s) => (
               <tr key={s.id}>
-                <Td>{s.email}</Td>
-                <Td className="text-[#5c5a54]">{s.source ?? "—"}</Td>
+                <Td className="font-medium">{s.email}</Td>
+                <Td className="text-[#5c5a54]">{sourceLabel(s.source)}</Td>
                 <Td>
                   <Badge tone={s.isActive ? "success" : "neutral"}>
                     {s.isActive ? "Active" : "Unsubscribed"}
                   </Badge>
                 </Td>
-                <Td className="text-[#5c5a54]">{format(s.createdAt, "d MMM yyyy")}</Td>
+                <Td className="text-[#5c5a54]">
+                  {format(s.createdAt, "d MMM yyyy · HH:mm")}
+                </Td>
               </tr>
             ))}
           </tbody>

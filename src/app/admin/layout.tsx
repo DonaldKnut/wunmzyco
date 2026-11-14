@@ -36,7 +36,7 @@ export default async function AdminLayout({ children }: LayoutProps<"/admin">) {
                   className="hidden md:inline-flex items-center gap-1.5 text-xs text-[#6b6459] transition hover:text-[#121110]"
                 >
                   <Globe className="h-3.5 w-3.5 text-[#b38e5d]" />
-                  <span>wunmzy.co</span>
+                  <span>wunmzyco.com</span>
                 </Link>
                 <div className="h-4 w-px bg-[#e8e2d7] hidden md:block" />
                 <AdminTourTrigger />

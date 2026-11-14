@@ -39,6 +39,7 @@ export function NewsletterForm() {
       className="flex w-full max-w-md flex-col gap-3 sm:flex-row sm:items-end"
       noValidate
     >
+      <input type="hidden" name="source" value="homepage" />
       <div className="flex-1 space-y-2">
         <Label htmlFor="newsletter-email" className="sr-only">
           Email

@@ -3,6 +3,7 @@ import { Bodoni_Moda, Manrope } from "next/font/google";
 import { FlashToast } from "@/components/providers/flash-toast";
 import { ToasterProvider } from "@/components/providers/toaster-provider";
 import { WhatsAppChat } from "@/components/storefront/whatsapp-chat";
+import { BRAND } from "@/lib/brand";
 import "./globals.css";
 
 const bodoniModa = Bodoni_Moda({
@@ -24,7 +25,12 @@ export const metadata: Metadata = {
     template: "%s · Wunmzy Co",
   },
   description: "Fashion & Accessories — Outfit for every occasion. Be bold. Be confident. Be you.",
-  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000"),
+  metadataBase: new URL(
+    process.env.NEXT_PUBLIC_SITE_URL &&
+      !/localhost|127\.0\.0\.1/i.test(process.env.NEXT_PUBLIC_SITE_URL)
+      ? process.env.NEXT_PUBLIC_SITE_URL
+      : BRAND.siteUrl,
+  ),
   icons: {
     icon: [{ url: "/brand/wunmzy-logo.png", type: "image/png" }],
     apple: [{ url: "/brand/wunmzy-logo.png" }],
